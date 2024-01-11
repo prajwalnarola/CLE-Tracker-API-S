@@ -5,7 +5,7 @@ const { validationResult } = require("express-validator");
 const { Sequelize, Op } = require("sequelize");
 
 const db = require("../config/db.config"); // models path
-const { user } = db;
+const { user, deviceToken } = db;
 
 const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
@@ -18,7 +18,7 @@ const helperFunctions = require("../utils/helperFunctions")
 exports.findUser = (data) => {
   return new Promise((resolve, reject) => {
     user.findAll({
-      where: { email: data },
+      where: { email: data, is_delete: 0 },
       attributes: {
         exclude: ["created_at", "updated_at", "is_testdata", "is_delete"]
       }
@@ -46,7 +46,8 @@ exports.findUser = (data) => {
 
 exports.findUserById = (data) => {
   return new Promise((resolve, reject) => {
-    user.findAll({ where: { id: data }, attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] } }).then((result) => {
+    // user.findAll({ where: { id: data }, attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] } }).then((result) => {
+      user.findAll({ where: { id: data }, attributes: { exclude: ["created_at", "updated_at", "is_testdata"] } }).then((result) => {
       try {
         if (result) {
           resolve({
@@ -309,3 +310,67 @@ exports.changePassword = async (req, res) => {
     res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
   }
 }
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    if (!req.decoded) {
+      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+      return;
+    }
+
+    var errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+      return;
+    }
+
+    const decoded = req?.decoded;
+
+    const user_data = await this.findUserById(decoded?.id);
+
+    if (user_data?.status == 1) {
+      const data = await user.update({ is_delete: 1 }, { where: { id: decoded?.id } });
+        if (data[0] == 1) {
+          res.status(responseCode.OK).send(responseObj.successObject("Account deleted successfuly!"))
+        } else {
+          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong deleting the account!"))
+        }
+      
+    } else {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("No such user found!"))
+    }
+
+  } catch (err) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+  }
+}
+
+exports.logout = async (req, res) => {
+  try {
+    if (!req.decoded) {
+      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+      return;
+    }
+
+    var errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+      return;
+    }
+
+    const decoded = req?.decoded;
+
+    const user_data = await this.findUserById(decoded?.id);
+
+    if (user_data?.status == 1) {
+      const data = await deviceToken.destroy({ where: { user_id: decoded?.id } });
+      res.status(responseCode.OK).send(responseObj.successObject("Logout successfuly!"))
+    } else {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("No such user found!"))
+    }
+    
+  } catch (err) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+  }
+}
+

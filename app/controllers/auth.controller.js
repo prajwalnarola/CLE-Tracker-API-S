@@ -167,7 +167,7 @@ exports.login = async (req, res) => {
     } else if (user_email.status === 1) {
 
       // Restrict user to login if not verified
-
+      
       if (user_email.data[0]?.is_verified == 0) {
         const mailResp = await userControl.sendVerificationMail({
           to: user_email.data[0]?.email,
@@ -215,7 +215,8 @@ exports.login = async (req, res) => {
         throw { status: responseCode.BADREQUEST, message: "Incorrect password!" };
       }
     } else {
-      throw { status: responseCode.BADREQUEST, message: "Invalid Email or password!" };
+      // throw { status: responseCode.BADREQUEST, message: "Invalid Email or password!" };
+      throw { status: responseCode.BADREQUEST, message: "No such user found!" };
     }
   } catch (err) {
     if (err?.message) {
