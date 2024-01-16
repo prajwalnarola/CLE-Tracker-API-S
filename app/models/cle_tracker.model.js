@@ -18,7 +18,6 @@ module.exports = (sequelize, Sequelize) => {
         type: Sequelize.STRING,
         validate: {
           notEmpty: true,
-          isAlphanumeric: true,
         },
       },
       cle_date: {

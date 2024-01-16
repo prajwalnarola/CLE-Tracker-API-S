@@ -12,7 +12,6 @@ module.exports = (sequelize, Sequelize) => {
           type: Sequelize.STRING,
           validate: {
             notEmpty: true,
-            isAlphanumeric: true,
           },
         },
         is_delete: {

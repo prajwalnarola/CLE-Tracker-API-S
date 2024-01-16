@@ -253,7 +253,12 @@ exports.updateProfile = async (req, res) => {
       const data = await user.update(updated_user, { where: { id: decoded?.id, is_delete: 0 } });
 
       if (data) {
-        res.status(responseCode.OK).send(responseObj.successObject("profile updated successfuly!"))
+
+        const responseData =  await user.findAll({
+          where: { id: decoded?.id, is_delete: 0 },
+          attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
+        })
+        res.status(responseCode.OK).send(responseObj.successObject("profile updated successfuly!", responseData[0]))
       } else {
         res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong updating the user profile!"))
       }

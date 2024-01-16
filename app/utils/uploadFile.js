@@ -8,7 +8,6 @@ module.exports = async (req, res) => {
       [
         function (callback) {
           if (req.files) {
-            var image_path_array = [];
             var file;
             var files;
             var dir;
@@ -17,17 +16,20 @@ module.exports = async (req, res) => {
               file = req.files["media"];
               files = [].concat(req.files.media);
               dir = "./upload/posts";
-            }
+            } 
             if (req.files["profile"]) {
               file = req.files["profile"];
               files = [].concat(req.files.profile);
               dir = "./upload/profile";
             }
-            // if (req.files["story"]) { 
-            //   file = req.files["story"];
-            //   files = [].concat(req.files.story);
-            //   dir = "./upload/story";
-            // }
+            if (req.files["documents"]) { 
+              file = req.files["documents"];
+              console.log(file);
+              files = [].concat(req.files.documents);
+              dir = "./upload/documents";
+            }
+
+            var image_path_array = [];
 
             //files
             async.eachSeries(
@@ -50,7 +52,6 @@ module.exports = async (req, res) => {
                     fs.mkdirSync(dir);
                   }
       
-                  // if(file.mimetype === 'application/pdf'){
                   if (file.mimetype.startsWith("image/")) {
                     // handle image file
                     var filename = Date.now() + "." + file.name.split(".").pop();
@@ -62,6 +63,22 @@ module.exports = async (req, res) => {
                       } else {
                         image_path_array.push({
                           type: "image",
+                          name: filename,
+                        });
+                        loop_callback();
+                      }
+                    });
+                  }
+                  if (file.mimetype.startsWith("application/pdf")) {
+                    var filename = Date.now() + "." + file.name.split(".").pop();
+                    file.mv(dir + "/" + filename, function (err) {
+                      if (err) {
+                        loop_callback({
+                          err: "There was an issue in uploading Image",
+                        });
+                      } else {
+                        image_path_array.push({
+                          type: "document",
                           name: filename,
                         });
                         loop_callback();
