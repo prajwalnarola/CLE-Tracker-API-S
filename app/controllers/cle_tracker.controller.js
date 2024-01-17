@@ -13,6 +13,7 @@ const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
 const uploadFile = require("../utils/uploadFile");
 const constants = require("../utils/constants");
+const { forEach } = require("async");
 const totalRequiredDocument = 4
 
 exports.getCategories = async (req, res) => {
@@ -37,7 +38,7 @@ exports.getCategories = async (req, res) => {
     if (data?.length > 0) {
       const categoryData = await categories.findAll({
         attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
-      })
+      });
       res.status(responseCode.OK).send(responseObj.successObject(null, categoryData))
     } else {
       res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
@@ -70,6 +71,20 @@ exports.postCle = async (req, res) => {
     const data = await user.findAll({
       where: { id: decoded?.id, is_delete: 0 },
     })
+
+    const admissionDate = data[0].new_york_state_admission_date
+    const oneYearLater = new Date(admissionDate);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    // Format the dates as "yyyy-mm-dd"
+    const formattedOneYearLater = formatDate(oneYearLater);
+    console.log(`One Year Later: ${formattedOneYearLater}`);
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
 
     if (data?.length > 0) {
       const cleData = {
@@ -110,6 +125,7 @@ exports.postCle = async (req, res) => {
             const creditsData = {
               cle_tracker_id: result.id,
               creditsEarned: req.body.creditsEarned,
+              required_date: formattedOneYearLater
             };
 
             credits.create(creditsData);
@@ -148,6 +164,7 @@ exports.getCle = async (req, res) => {
 
     const decoded = req?.decoded;
 
+
     const data = await user.findAll({
       where: { id: decoded?.id, is_delete: 0 },
     })
@@ -158,32 +175,41 @@ exports.getCle = async (req, res) => {
         where: { user_id: decoded?.id, is_delete: 0 },
       })
 
-      if (cleData?.length > 0) {
+      const responseData = await Promise.all(cleData.map(async (data) => {
 
         const categoryData = await categories.findAll({
-          where: { id: cleData[0].category_id, is_delete: 0 }, attributes: ["id", "cle_name"]
-        })
+          where: { id: data.category_id, is_delete: 0 },
+          attributes: ["id", "cle_name"]
+        });
 
         const creditsData = await credits.findAll({
-          where: { cle_tracker_id: cleData[0].id, is_delete: 0 }, attributes: ["id", "creditsEarned"]
-        })
+          where: { cle_tracker_id: data.id, is_delete: 0 },
+          attributes: ["id", "creditsEarned", "required_date"]
+        });
 
         const documentData = await documents.findAll({
-          where: { cle_tracker_id: cleData[0].id, is_delete: 0 }, attributes: ["id", "document"]
-        })
+          where: { cle_tracker_id: data.id, is_delete: 0 },
+          attributes: ["id", "document"]
+        });
 
-        const responseData = {
-          id: cleData[0].id,
-          user_id: cleData[0].user_id,
-          cle_name: cleData[0].cle_name,
-          cle_date: cleData[0].cle_date,
+        const documentCount = await documents.count({
+          where: { cle_tracker_id: data.id, is_delete: 0 },
+        });
+
+        return {
+          id: data.id,
+          user_id: data.user_id,
+          cle_name: data.cle_name,
+          cle_date: data.cle_date,
           category_data: categoryData,
           credits_data: creditsData,
-          document_data: documentData
-        }
+          document_data: documentData,
+          document_count: documentCount
+        };
+      }));
 
-        res.status(responseCode.OK).send(responseObj.successObject(null, responseData))
-      }
+      res.status(responseCode.OK).send(responseObj.successObject(null, responseData));
+
     } else {
       res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
     }
@@ -234,19 +260,20 @@ exports.updateCle = async (req, res) => {
       creditsEarned: req.body?.creditsEarned,
     };
 
-    let update_document;
-    if (req.files['documents']) {
-      update_document = (await uploadFile(req, res))[0]?.name
-    }
+    // let update_document;
+    // if (req.files['documents']) {
+    //   update_document = (await uploadFile(req, res))[0]?.name
+    // }
 
-    const update_document_data = {
-      document: update_document
-    }
+    // const update_document_data = {
+    //   document: update_document
+    // }
 
-    console.log(update_document);
+    // console.log(update_document);
 
     if (updated_cle) {
       const data = await cleTracker.update(updated_cle, { where: { id: cle_tracker_id, user_id: decoded?.id, is_delete: 0 } });
+
       if (data) {
 
         const verifyCreditData = await credits.findAll({
@@ -265,7 +292,7 @@ exports.updateCle = async (req, res) => {
 
         if (verifyDocumentData.length > 0) {
 
-          await documents.update(update_document_data, { where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
+          await documents.update({ is_delete: 1 }, { where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
           res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"))
 
         } else {
@@ -305,6 +332,166 @@ exports.updateCle = async (req, res) => {
     res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
   }
 }
+
+exports.deleteDocuments = async (req, res) => {
+  try {
+    if (!req?.query) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Content is required"))
+      return;
+    }
+
+    if (!req.decoded) {
+      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+      return;
+    }
+
+    var errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+      return;
+    }
+
+    const decoded = req?.decoded;
+    const cle_tracker_id = req.query.cle_tracker_id
+    const document_id = req.query.document_id
+
+    const userData = await user.findAll({
+      where: { id: decoded?.id, is_delete: 0 },
+    })
+
+    if (userData.length > 0) {
+
+      const documentData = await documents.findAll({
+        where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
+      })
+
+      if (documentData?.length > 0) {
+        const data = await documents.update({ is_delete: 1 }, { where: { id: req.query.document_id, cle_tracker_id: req.query.cle_tracker_id, is_delete: 0 } });
+        if (data) {
+          res.status(responseCode.OK).send(responseObj.successObject("Document deleted successfuly!"))
+        } else {
+          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
+        }
+      } else {
+        res.status(responseCode.BADREQUEST).send(responseObj.failObject("No such document"))
+        return;
+      }
+
+    } else {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
+
+    }
+
+  } catch (err) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+  }
+}
+
+exports.deleteCLE = async (req, res) => {
+  try {
+    if (!req?.query) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Content is required"))
+      return;
+    }
+
+    if (!req.decoded) {
+      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+      return;
+    }
+
+    var errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+      return;
+    }
+
+    const decoded = req?.decoded;
+    const cle_tracker_id = req.query.cle_tracker_id
+
+    const userData = await user.findAll({
+      where: { id: decoded?.id, is_delete: 0 },
+    })
+
+    if (userData.length > 0) {
+
+      const cleData = await cleTracker.findAll({
+        where: { id: cle_tracker_id, is_delete: 0 },
+      })
+
+      if (cleData?.length > 0) {
+        const data = await cleTracker.update({ is_delete: 1 }, { where: { id: req.query.cle_tracker_id, is_delete: 0 } });
+        if (data) {
+          res.status(responseCode.OK).send(responseObj.successObject("CLE deleted successfuly!"))
+        } else {
+          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
+        }
+      } else {
+        res.status(responseCode.BADREQUEST).send(responseObj.failObject("No such CLE"))
+        return;
+      }
+
+    } else {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
+    }
+
+  } catch (err) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+  }
+}
+
+exports.getCredits = async (req, res) => {
+
+  if (!req.decoded) {
+    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+    return;
+  }
+
+  var errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+    return;
+  }
+
+  const decoded = req?.decoded;
+
+  const userData = await user.findAll({
+    where: { id: decoded?.id, is_delete: 0 },
+  })
+
+  if (userData.length > 0) {
+
+    const cleData = await cleTracker.findAll({
+      where: { user_id: decoded?.id, is_delete: 0 },
+    })
+
+    const responseData = await Promise.all(cleData.map(async (data) => {
+      const creditsData = await credits.findAll({
+        where: { cle_tracker_id: data.id, is_delete: 0 },
+        attributes: ["id", "creditsEarned"]
+      });
+
+      return {
+        credits_data: creditsData,
+      };
+    }));
+
+    const totalCreditsEarned = responseData.reduce((sum, item) => {
+      if (item.credits_data && Array.isArray(item.credits_data)) {
+        const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
+        const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
+        return sum + sumOfCreditsEarned;
+      } else {
+        return sum;
+      }
+    }, 0);
+
+    console.log('Total Credits Earned:', totalCreditsEarned);
+
+    res.status(responseCode.OK).send(responseObj.successObject(null, totalCreditsEarned));
+  }
+
+}
+
 
 
 

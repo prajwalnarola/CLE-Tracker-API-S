@@ -11,5 +11,8 @@ Router.get('/categories', [], controller.getCategories);
 Router.post('/post', [], controller.postCle);
 Router.get('/getCle', [], controller.getCle);
 Router.post('/updateCle', [], controller.updateCle);
+Router.post('/deleteDocument', [], controller.deleteDocuments);
+Router.post('/deleteCle', [], controller.deleteCLE);
+Router.get('/getCredits', [], controller.getCredits);
 
 module.exports = Router;
