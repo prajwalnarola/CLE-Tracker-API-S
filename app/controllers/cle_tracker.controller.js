@@ -72,7 +72,7 @@ exports.postCle = async (req, res) => {
       where: { id: decoded?.id, is_delete: 0 },
     })
 
-    const admissionDate = data[0].new_york_state_admission_date
+    const admissionDate = data[0].new_york_state_admission_date;
     const oneYearLater = new Date(admissionDate);
     oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
     // Format the dates as "yyyy-mm-dd"
@@ -85,6 +85,8 @@ exports.postCle = async (req, res) => {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     }
+
+    const is_experienced = data[0].is_experienced;
 
     if (data?.length > 0) {
       const cleData = {
@@ -122,16 +124,29 @@ exports.postCle = async (req, res) => {
 
             }
 
+            if(is_experienced == 0){
+              const creditsData = {
+                cle_tracker_id: result.id,
+                creditsEarned: req.body.creditsEarned,
+                required_date: formattedOneYearLater,
+                requiredCredits: 32,
+              };
+  
+              credits.create(creditsData);
+              res.send({ message: "data has been inserted!" });
+
+            } else if(is_experienced == 1){
             const creditsData = {
               cle_tracker_id: result.id,
               creditsEarned: req.body.creditsEarned,
-              required_date: formattedOneYearLater
+              required_date: formattedOneYearLater,
+              requiredCredits: 24,
             };
 
             credits.create(creditsData);
-
             res.send({ message: "data has been inserted!" });
 
+          }
           } else {
             res.send({ message: "Can not insert data" });
           }
@@ -184,7 +199,7 @@ exports.getCle = async (req, res) => {
 
         const creditsData = await credits.findAll({
           where: { cle_tracker_id: data.id, is_delete: 0 },
-          attributes: ["id", "creditsEarned", "required_date"]
+          attributes: ["id", "creditsEarned", "required_date", "requiredCredits"]
         });
 
         const documentData = await documents.findAll({
