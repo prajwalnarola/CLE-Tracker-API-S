@@ -73,7 +73,7 @@ exports.register = async (req, res) => {
             "localhost:" +
             // process.env.PORT +
             "3000" +
-            "/auth/verify-password/" +
+            "/auth/verify-email/" +
             data?.uuid,
           user_name: data?.user_name,
           email: data?.email,
@@ -126,11 +126,12 @@ exports.register = async (req, res) => {
 
 exports.verifyEmail = async (req, res) => {
   try {
-    if (!req.params["token"]) {
+    if (!req.params['token']) {
       res.render(constants.TEMPLATE_PATHS.ERROR_500);
     }
 
-    const token = req.params["token"];
+    const token = req.params['token'];
+    console.log(token);
     const db_user = await user.findAll({ where: { uuid: token, is_delete: 0, is_verified: 0 } });
     console.log(db_user[0]);
     if (db_user) {
@@ -172,8 +173,8 @@ exports.login = async (req, res) => {
         const mailResp = await userControl.sendVerificationMail({
           to: user_email.data[0]?.email,
           subject: "Verify Email",
-          // verify_link: "localhost:" + process.env.PORT + "/auth/verify-password/" + user_email.data[0]?.uuid,
-          verify_link: "localhost:" + "3000" + "/auth/verify-password/" + user_email.data[0]?.uuid,
+          // verify_link: "localhost:" + process.env.PORT + "/auth/verify-email/" + user_email.data[0]?.uuid,
+          verify_link: "localhost:" + "3000" + "/auth/verify-email/" + user_email.data[0]?.uuid,
           user_name: user_email.data[0]?.user_name,
           email: user_email.data[0]?.email,
         });

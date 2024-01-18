@@ -135,8 +135,8 @@ exports.postCle = async (req, res) => {
               };
   
               credits.create(creditsData);
-              res.send({ message: "data has been inserted!" });
-
+              res.status(responseCode.OK).send(responseObj.successObject("data has been inserted!"));
+              
             } else if(is_experienced == 1){
             const creditsData = {
               cle_tracker_id: result.id,
@@ -146,8 +146,7 @@ exports.postCle = async (req, res) => {
             };
 
             credits.create(creditsData);
-            res.send({ message: "data has been inserted!" });
-
+            res.status(responseCode.OK).send(responseObj.successObject("data has been inserted!"));
           }
           } else {
             res.send({ message: "Can not insert data" });
