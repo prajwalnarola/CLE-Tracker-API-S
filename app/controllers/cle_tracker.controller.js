@@ -14,7 +14,9 @@ const responseObj = require("../utils/responseObjects");
 const uploadFile = require("../utils/uploadFile");
 const constants = require("../utils/constants");
 const { forEach } = require("async");
-const totalRequiredDocument = 4
+const totalRequiredDocument = 4;
+const requiredCreditsForExperienced = 24;
+const requiredCreditsForFresher = 32;
 
 exports.getCategories = async (req, res) => {
   try {
@@ -129,7 +131,7 @@ exports.postCle = async (req, res) => {
                 cle_tracker_id: result.id,
                 creditsEarned: req.body.creditsEarned,
                 required_date: formattedOneYearLater,
-                requiredCredits: 32,
+                requiredCredits: requiredCreditsForFresher,
               };
   
               credits.create(creditsData);
@@ -140,7 +142,7 @@ exports.postCle = async (req, res) => {
               cle_tracker_id: result.id,
               creditsEarned: req.body.creditsEarned,
               required_date: formattedOneYearLater,
-              requiredCredits: 24,
+              requiredCredits: requiredCreditsForExperienced,
             };
 
             credits.create(creditsData);
