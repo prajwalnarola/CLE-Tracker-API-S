@@ -14,5 +14,6 @@ Router.post('/updateCle', [], controller.updateCle);
 Router.post('/deleteDocument', [], controller.deleteDocuments);
 Router.post('/deleteCle', [], controller.deleteCLE);
 Router.get('/getCredits', [], controller.getCredits);
+Router.get('/extend', [], controller.extendExpiryDate);
 
 module.exports = Router;

@@ -72,6 +72,18 @@ module.exports = (sequelize, Sequelize) => {
         defaultValue: "0",
         comment: "0 = false, 1 = true",
       },
+      required_credits: {
+        type: Sequelize.INTEGER,
+        validate: {
+          notEmpty: true,
+        },
+      },
+      required_date: {
+        type: Sequelize.DATE,
+        validate: {
+          notEmpty: true,
+        },
+      },
       uuid: {
         type: Sequelize.STRING,
         validate: {

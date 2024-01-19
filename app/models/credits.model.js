@@ -14,18 +14,6 @@ module.exports = (sequelize, Sequelize) => {
           notEmpty: true,
         },
       },
-      requiredCredits: {
-        type: Sequelize.INTEGER,
-        validate: {
-          notEmpty: true,
-        },
-      },
-      required_date: {
-        type: Sequelize.DATE,
-        validate: {
-          notEmpty: true,
-        },
-      },
       is_delete: {
         type: Sequelize.BOOLEAN,
         defaultValue: "0",

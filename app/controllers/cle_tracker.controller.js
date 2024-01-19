@@ -15,8 +15,8 @@ const uploadFile = require("../utils/uploadFile");
 const constants = require("../utils/constants");
 const { forEach } = require("async");
 const totalRequiredDocument = 4;
-const requiredCreditsForExperienced = 24;
-const requiredCreditsForFresher = 32;
+// const requiredCreditsForExperienced = 24;
+// const requiredCreditsForFresher = 32;
 
 exports.getCategories = async (req, res) => {
   try {
@@ -41,7 +41,13 @@ exports.getCategories = async (req, res) => {
       const categoryData = await categories.findAll({
         attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
       });
-      res.status(responseCode.OK).send(responseObj.successObject(null, categoryData))
+
+      const responseData = {
+        requiredCredits: data[0].required_credits,
+        required_date: data[0].required_date,
+        category_data: categoryData,
+      }
+      res.status(responseCode.OK).send(responseObj.successObject(null, responseData))
     } else {
       res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
     }
@@ -74,21 +80,21 @@ exports.postCle = async (req, res) => {
       where: { id: decoded?.id, is_delete: 0 },
     })
 
-    const admissionDate = data[0].new_york_state_admission_date;
-    const oneYearLater = new Date(admissionDate);
-    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-    // Format the dates as "yyyy-mm-dd"
-    const formattedOneYearLater = formatDate(oneYearLater);
-    console.log(`One Year Later: ${formattedOneYearLater}`);
+    // const admissionDate = data[0].new_york_state_admission_date;
+    // const oneYearLater = new Date(admissionDate);
+    // oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    // // Format the dates as "yyyy-mm-dd"
+    // const formattedOneYearLater = formatDate(oneYearLater);
+    // console.log(`One Year Later: ${formattedOneYearLater}`);
 
-    function formatDate(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
+    // function formatDate(date) {
+    //   const year = date.getFullYear();
+    //   const month = String(date.getMonth() + 1).padStart(2, '0');
+    //   const day = String(date.getDate()).padStart(2, '0');
+    //   return `${year}-${month}-${day}`;
+    // }
 
-    const is_experienced = data[0].is_experienced;
+    // const is_experienced = data[0].is_experienced;
 
     if (data?.length > 0) {
       const cleData = {
@@ -126,31 +132,32 @@ exports.postCle = async (req, res) => {
 
             }
 
-            if(is_experienced == 0){
-              const creditsData = {
-                cle_tracker_id: result.id,
-                creditsEarned: req.body.creditsEarned,
-                required_date: formattedOneYearLater,
-                requiredCredits: requiredCreditsForFresher,
-              };
-  
-              credits.create(creditsData);
-              res.status(responseCode.OK).send(responseObj.successObject("data has been inserted!"));
-              
-            } else if(is_experienced == 1){
+            // if (is_experienced == 0) {
             const creditsData = {
               cle_tracker_id: result.id,
               creditsEarned: req.body.creditsEarned,
-              required_date: formattedOneYearLater,
-              requiredCredits: requiredCreditsForExperienced,
+              // required_date: formattedOneYearLater,
+              // requiredCredits: requiredCreditsForFresher,
             };
 
             credits.create(creditsData);
             res.status(responseCode.OK).send(responseObj.successObject("data has been inserted!"));
+
           }
-          } else {
-            res.send({ message: "Can not insert data" });
-          }
+          //  else if (is_experienced == 1) {
+          //   const creditsData = {
+          //     cle_tracker_id: result.id,
+          //     creditsEarned: req.body.creditsEarned,
+          //     required_date: formattedOneYearLater,
+          //     requiredCredits: requiredCreditsForExperienced,
+          //   };
+
+          //   credits.create(creditsData);
+          //   res.status(responseCode.OK).send(responseObj.successObject("data has been inserted!"));
+          // }
+          // } else {
+          //   res.send({ message: "Can not insert data" });
+          // }
         })
         .catch((err) => {
           res.status(400).send({ message: "Somthing went wrong while inserting data!" });
@@ -200,7 +207,7 @@ exports.getCle = async (req, res) => {
 
         const creditsData = await credits.findAll({
           where: { cle_tracker_id: data.id, is_delete: 0 },
-          attributes: ["id", "creditsEarned", "required_date", "requiredCredits"]
+          attributes: ["id", "creditsEarned"]
         });
 
         const documentData = await documents.findAll({
@@ -502,6 +509,98 @@ exports.getCredits = async (req, res) => {
     }, 0);
 
     console.log('Total Credits Earned:', totalCreditsEarned);
+
+    res.status(responseCode.OK).send(responseObj.successObject(null, totalCreditsEarned));
+  }
+
+}
+
+exports.extendExpiryDate = async (req, res) => {
+
+  if (!req.decoded) {
+    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+    return;
+  }
+
+  var errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+    return;
+  }
+
+  const decoded = req?.decoded;
+
+  const userData = await user.findAll({
+    where: { id: decoded?.id, is_delete: 0 },
+  })
+
+
+  if (userData.length > 0) {
+
+    const requireCredits = userData[0].required_credits;
+    const requireDate = userData[0].required_date;
+    console.log("/////////");
+    console.log(requireDate);
+
+
+    const cleData = await cleTracker.findAll({
+      where: { user_id: decoded?.id, is_delete: 0 },
+    })
+
+
+
+    const responseData = await Promise.all(cleData.map(async (data) => {
+      const creditsData = await credits.findAll({
+        where: { cle_tracker_id: data.id, is_delete: 0 },
+        attributes: ["id", "creditsEarned"]
+      });
+
+      return {
+        credits_data: creditsData,
+      };
+    }));
+
+    const totalCreditsEarned = responseData.reduce((sum, item) => {
+      if (item.credits_data && Array.isArray(item.credits_data)) {
+        const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
+        const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
+        return sum + sumOfCreditsEarned;
+      } else {
+        return sum;
+      }
+    }, 0);
+
+    console.log('Total Credits Earned:', totalCreditsEarned);
+
+    const admissionDate = requireDate;
+    const oneYearLater = new Date(admissionDate);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    // Format the dates as "yyyy-mm-dd"
+    const formattedOneYearLater = formatDate(oneYearLater);
+    console.log(`One Year Later: ${formattedOneYearLater}`);
+
+    function formatDate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+      var today = formatDate(new Date());
+      console.log(today);
+
+      if(today < requireDate){
+
+        console.log("Jinklo Re");
+      }
+
+
+    if (totalCreditsEarned != requireCredits) {
+
+      
+      // await user.update({ required_date: formattedOneYearLater }, { where: { id: data.id, is_delete: 0 } });
+
+    }
 
     res.status(responseCode.OK).send(responseObj.successObject(null, totalCreditsEarned));
   }

@@ -12,6 +12,8 @@ const functions = require("../utils/helperFunctions");
 const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
 const constants = require("../utils/constants");
+const requiredCreditsForExperienced = 24;
+const requiredCreditsForFresher = 32;
 
 exports.refreshToken = async (req, res) => {
   const errors = validationResult(req);
@@ -66,11 +68,50 @@ exports.register = async (req, res) => {
 
       const data = await user.create(create_user);
       if (data) {
+
+
+        if (!data.isEmpty) {
+          console.log(data);
+
+          const admissionDate = data.new_york_state_admission_date;
+          const oneYearLater = new Date(admissionDate);
+          oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+          // Format the dates as "yyyy-mm-dd"
+          const formattedOneYearLater = formatDate(oneYearLater);
+          console.log(`One Year Later: ${formattedOneYearLater}`);
+
+          function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          }
+
+          const is_experienced = data.is_experienced;
+
+          if (is_experienced == 0) {
+            const requireData = {
+              required_credits: requiredCreditsForFresher,
+              required_date: formattedOneYearLater,
+            };
+
+            await user.update(requireData, { where: { id: data.id, is_delete: 0 } });
+          } else  if (is_experienced == 1) {
+            const requireData1 = {
+              required_credits: requiredCreditsForExperienced,
+              required_date: formattedOneYearLater,
+            };
+            await user.update(requireData1, { where: { id: data.id, is_delete: 0 } });
+          }
+        } else {
+          res.send({ message: "Can not insert data" });
+        }
+
         const mailResp = await userControl.sendVerificationMail({
           to: data?.email,
           subject: "Verify Email",
           verify_link:
-            "localhost:" +
+            "http://localhost:" +
             // process.env.PORT +
             "3000" +
             "/auth/verify-email/" +
@@ -168,7 +209,7 @@ exports.login = async (req, res) => {
     } else if (user_email.status === 1) {
 
       // Restrict user to login if not verified
-      
+
       if (user_email.data[0]?.is_verified == 0) {
         const mailResp = await userControl.sendVerificationMail({
           to: user_email.data[0]?.email,
@@ -209,7 +250,7 @@ exports.login = async (req, res) => {
           device_type: req.headers['device_type'],
           device_token: req.headers['device_token'],
         };
-  
+
         const data = await deviceToken.create(create_deviceToken);
         res.status(responseCode.OK).send({ ...responseObj.successObject("Login successfully!", return_data), token: token });
       } else {
@@ -314,7 +355,7 @@ exports.resetPassword = (req, res) => {
         };
         console.log(update_payload.password);
         user
-          .update({password: bcrypt.hashSync(update_payload.password, 10)}, { where: { id: decoded.id } }) 
+          .update({ password: bcrypt.hashSync(update_payload.password, 10) }, { where: { id: decoded.id } })
           .then((result) => {
             if (result == 1) {
               res.send({ message: "Password has been updated!" });
