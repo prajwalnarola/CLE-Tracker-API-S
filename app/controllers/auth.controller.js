@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const JWTFunctions = require("../Helpers/JWTFunctions");
 
 const db = require("../config/db.config"); // models path
-const { admin, user, deviceToken } = db;
+const { user, deviceToken, details } = db;
 
 const userControl = require("./user.controller");
 const functions = require("../utils/helperFunctions");
@@ -59,50 +59,61 @@ exports.register = async (req, res) => {
         last_name: req.body.last_name,
         email: req.body.email,
         date_of_birth: req.body.date_of_birth,
-        attorny_registration_number: req.body.attorny_registration_number,
-        new_york_state_admission_date: req.body.new_york_state_admission_date,
-        department_of_admission: req.body.department_of_admission,
         password: req.body.password,
         is_experienced: req.body.is_experienced
       };
 
       const data = await user.create(create_user);
       if (data) {
-
-
         if (!data.isEmpty) {
           console.log(data);
 
-          const admissionDate = data.new_york_state_admission_date;
-          const oneYearLater = new Date(admissionDate);
-          oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-          // Format the dates as "yyyy-mm-dd"
-          const formattedOneYearLater = formatDate(oneYearLater);
-          console.log(`One Year Later: ${formattedOneYearLater}`);
+          const detail = {
+            user_id: data.id,
+            attorny_registration_number: req.body.attorny_registration_number,
+            new_york_state_admission_date: req.body.new_york_state_admission_date,
+            department_of_admission: req.body.department_of_admission,
+            is_experienced: req.body.is_experienced
+          };
 
-          function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+          const detailsData = await details.create(detail);
+          if (!detailsData.isEmpty) {
+            console.log(detailsData);
+
+            const admissionDate = detailsData.new_york_state_admission_date;
+            const oneYearLater = new Date(admissionDate);
+            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+            // Format the dates as "yyyy-mm-dd"
+            const formattedOneYearLater = formatDate(oneYearLater);
+            console.log(`One Year Later: ${formattedOneYearLater}`);
+
+            function formatDate(date) {
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              return `${year}-${month}-${day}`;
+            }
+
+            const is_experienced = detailsData.is_experienced;
+
+            if (is_experienced == 0) {
+              const requireData = {
+                required_credits: requiredCreditsForFresher,
+                required_date: formattedOneYearLater,
+              };
+
+              await details.update(requireData, { where: { id: detailsData.id, is_delete: 0 } });
+            } else if (is_experienced == 1) {
+              const requireData1 = {
+                required_credits: requiredCreditsForExperienced,
+                required_date: formattedOneYearLater,
+              };
+              await details.update(requireData1, { where: { id: detailsData.id, is_delete: 0 } });
+            }
+          } else {
+            res.send({ message: "Can not insert data" });
           }
 
-          const is_experienced = data.is_experienced;
-
-          if (is_experienced == 0) {
-            const requireData = {
-              required_credits: requiredCreditsForFresher,
-              required_date: formattedOneYearLater,
-            };
-
-            await user.update(requireData, { where: { id: data.id, is_delete: 0 } });
-          } else  if (is_experienced == 1) {
-            const requireData1 = {
-              required_credits: requiredCreditsForExperienced,
-              required_date: formattedOneYearLater,
-            };
-            await user.update(requireData1, { where: { id: data.id, is_delete: 0 } });
-          }
         } else {
           res.send({ message: "Can not insert data" });
         }
@@ -228,14 +239,36 @@ exports.login = async (req, res) => {
         }
       }
 
+      const user_details = await details.findAll({where: user_email.data[0].id, is_delete: 0, 
+        attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
+      });
+
       if (functions.verifyPassword(req.body?.password, user_email.data[0]?.password) && req.body.email.toLowerCase() == user_email.data[0].email.toLowerCase()) {
         const jwt_data = { id: user_email.data[0].id, email: user_email.data[0].email, uuid: user_email.data[0].uuid };
         const token = jwt.sign(jwt_data, process.env.ACCESS_TOKEN_SECRET_KEY);
 
-        let return_data = functions.removeKeyCustom(user_email.data[0]?.dataValues, "password");
+        const responseData = {
+        id: user_email.data[0]?.id,
+        profile: user_email.data[0]?.profile,
+        first_name: user_email.data[0]?.first_name,
+        middle_name: user_email.data[0]?.middle_name,
+        last_name: user_email.data[0]?.last_name,
+        email: user_email.data[0]?.email,
+        date_of_birth: user_email.data[0]?.date_of_birth,
+        attorny_registration_number: user_details[0].attorny_registration_number,
+        new_york_state_admission_date: user_details[0].new_york_state_admission_date,
+        department_of_admission: user_details[0].department_of_admission,
+        is_experienced: user_details[0].is_experienced,
+        required_credits: user_details[0].required_credits,
+        required_date: user_details[0].required_date
+        }
+
+        console.log(responseData);
+
+        let return_data = functions.removeKeyCustom(responseData, "password");
+        // let return_data = functions.removeKeyCustom(user_email.data[0]?.dataValues, "password");
         return_data = functions.removeKeyCustom(return_data, "uuid");
         return_data = functions.removeKeyCustom(return_data, "device_token");
-        return_data = functions.removeKeyCustom(return_data, "is_experienced");
         return_data = functions.removeKeyCustom(return_data, "is_verified");
         return_data = functions.removeKeyCustom(return_data, "is_delete");
         return_data = functions.removeKeyCustom(return_data, "is_testdata");

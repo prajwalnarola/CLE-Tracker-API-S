@@ -586,20 +586,14 @@ exports.extendExpiryDate = async (req, res) => {
       return `${year}-${month}-${day}`;
     }
 
-      var today = formatDate(new Date());
-      console.log(today);
-
-      if(today < requireDate){
-
-        console.log("Jinklo Re");
-      }
-
+    var today = formatDate(new Date());
+    console.log(today);
 
     if (totalCreditsEarned != requireCredits) {
 
-      
-      // await user.update({ required_date: formattedOneYearLater }, { where: { id: data.id, is_delete: 0 } });
-
+      if (today >= requireDate) {
+        await user.update({ required_date: formattedOneYearLater }, { where: { id: data.id, is_delete: 0 } });
+      }
     }
 
     res.status(responseCode.OK).send(responseObj.successObject(null, totalCreditsEarned));
