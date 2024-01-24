@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const JWTFunctions = require("../Helpers/JWTFunctions");
 
 const db = require("../config/db.config"); // models path
-const { user, categories, documents, cleTracker, credits } = db;
+const { user, categories, documents, cleTracker, credits, details } = db;
 
 const userControl = require("./user.controller");
 const functions = require("../utils/helperFunctions");
@@ -537,66 +537,86 @@ exports.extendExpiryDate = async (req, res) => {
 
   if (userData.length > 0) {
 
-    const requireCredits = userData[0].required_credits;
-    const requireDate = userData[0].required_date;
-    console.log("/////////");
-    console.log(requireDate);
-
-
-    const cleData = await cleTracker.findAll({
-      where: { user_id: decoded?.id, is_delete: 0 },
+    const userDetails = await db.details.findAll({
+      where: { id: decoded?.id, is_delete: 0 },
     })
 
 
+    if (userDetails.length > 0) {
 
-    const responseData = await Promise.all(cleData.map(async (data) => {
-      const creditsData = await credits.findAll({
-        where: { cle_tracker_id: data.id, is_delete: 0 },
-        attributes: ["id", "creditsEarned"]
-      });
+      const requireCredits = userDetails[0].required_credits;
+      const requireDate = userDetails[0].required_date;
+      console.log("/////////");
+      console.log(requireDate);
 
-      return {
-        credits_data: creditsData,
-      };
-    }));
 
-    const totalCreditsEarned = responseData.reduce((sum, item) => {
-      if (item.credits_data && Array.isArray(item.credits_data)) {
-        const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
-        const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
-        return sum + sumOfCreditsEarned;
-      } else {
-        return sum;
+      const cleData = await cleTracker.findAll({
+        where: { user_id: decoded?.id, is_delete: 0 },
+      })
+
+
+
+      const responseData = await Promise.all(cleData.map(async (data) => {
+        const creditsData = await credits.findAll({
+          where: { cle_tracker_id: data.id, is_delete: 0 },
+          attributes: ["id", "creditsEarned"]
+        });
+
+        return {
+          credits_data: creditsData,
+        };
+      }));
+
+      const totalCreditsEarned = responseData.reduce((sum, item) => {
+        if (item.credits_data && Array.isArray(item.credits_data)) {
+          const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
+          const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
+          return sum + sumOfCreditsEarned;
+        } else {
+          return sum;
+        }
+      }, 0);
+
+      console.log('Total Credits Earned:', totalCreditsEarned);
+
+      const admissionDate = requireDate;
+      const oneYearLater = new Date(admissionDate);
+      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+      // Format the dates as "yyyy-mm-dd"
+      const formattedOneYearLater = formatDate(oneYearLater);
+      console.log(`One Year Later: ${formattedOneYearLater}`);
+
+      function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       }
-    }, 0);
 
-    console.log('Total Credits Earned:', totalCreditsEarned);
+      var today = formatDate(new Date());
+      console.log(today);
 
-    const admissionDate = requireDate;
-    const oneYearLater = new Date(admissionDate);
-    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-    // Format the dates as "yyyy-mm-dd"
-    const formattedOneYearLater = formatDate(oneYearLater);
-    console.log(`One Year Later: ${formattedOneYearLater}`);
+      if (totalCreditsEarned != requireCredits) {
+        console.log("//// Inside credits condition //// ");
 
-    function formatDate(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    var today = formatDate(new Date());
-    console.log(today);
-
-    if (totalCreditsEarned != requireCredits) {
-
-      if (today >= requireDate) {
-        await user.update({ required_date: formattedOneYearLater }, { where: { id: data.id, is_delete: 0 } });
+        if (today >= requireDate) {
+          console.log("//// Inside date condition ////");
+          await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
+        }
       }
-    }
 
-    res.status(responseCode.OK).send(responseObj.successObject(null, totalCreditsEarned));
+      const details = await db.details.findAll({
+        where: { user_id: userDetails[0].id, is_delete: 0 },
+        attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
+      })
+
+      const resultData = {
+        totalCreditsEarned: totalCreditsEarned,
+        requireDate: details[0].required_date,
+      }
+      
+      res.status(responseCode.OK).send(responseObj.successObject(null, resultData));
+    }
   }
 
 }
