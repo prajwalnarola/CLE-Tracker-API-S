@@ -11,7 +11,7 @@ const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
 const constants = require("../utils/constants");
 const uploadFile = require("../utils/uploadFile");
-const helperFunctions = require("../utils/helperFunctions")
+const helperFunctions = require("../utils/helperFunctions");
 
 
 // find user logic
@@ -125,6 +125,7 @@ exports.getUserProfile = async (req, res) => {
         attorny_registration_number: user_details[0].attorny_registration_number,
         new_york_state_admission_date: user_details[0].new_york_state_admission_date,
         department_of_admission: user_details[0].department_of_admission,
+        biennial_reporting_date: user_details[0].biennial_reporting_date,
         is_experienced: user_details[0].is_experienced,
         required_credits: user_details[0].required_credits,
         required_date: user_details[0].required_date
@@ -382,6 +383,10 @@ exports.updateProfile = async (req, res) => {
       updated_user_details['department_of_admission'] = req.body?.department_of_admission
     }
 
+    if (req.body?.biennial_reporting_date) {
+      updated_user_details['biennial_reporting_date'] = req.body?.biennial_reporting_date
+    }
+
     if (updated_user) {
       const data = await user.update(updated_user, { where: { id: decoded?.id, is_delete: 0 } })
 
@@ -397,23 +402,10 @@ exports.updateProfile = async (req, res) => {
           if (detailsData) {
 
             const getDetails = await details.findAll( {where: { user_id: decoded?.id, is_delete: 0 }});
-            console.log(getDetails[0].new_york_state_admission_date);
-            const admissionDate = getDetails[0].new_york_state_admission_date;
-            const oneYearLater = new Date(admissionDate);
-            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-            // Format the dates as "yyyy-mm-dd"
-            const formattedOneYearLater = formatDate(oneYearLater);
-            console.log(`One Year Later: ${formattedOneYearLater}`);
-
-            function formatDate(date) {
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
-              return `${year}-${month}-${day}`;
-            }
-
+            const requireDate = getDetails[0].biennial_reporting_date;
+            
             const requireData = {
-              required_date: formattedOneYearLater,
+              required_date: requireDate,
             };
 
             await details.update(requireData, { where: { user_id: decoded?.id, is_delete: 0 } });
@@ -439,6 +431,7 @@ exports.updateProfile = async (req, res) => {
                 attorny_registration_number: userDetailsResponseData[0].attorny_registration_number,
                 new_york_state_admission_date: userDetailsResponseData[0].new_york_state_admission_date,
                 department_of_admission: userDetailsResponseData[0].department_of_admission,
+                biennial_reporting_date: userDetailsResponseData[0].biennial_reporting_date,
                 is_experienced: userDetailsResponseData[0].is_experienced,
               }
               res.status(responseCode.OK).send(responseObj.successObject("profile updated successfuly!", responseData));

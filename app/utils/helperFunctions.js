@@ -46,5 +46,15 @@ function verifyPassword(password, hashPassword) {
   return bcrypt.compareSync(password, hashPassword);
 }
 
+// HERE IS FUNCTION FOR FORMAT DATE IN YYYY-MM-DD
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 //EXPORTED ABOVE METHODS
-module.exports = { encrypt, decrypt, removeKeyCustom, hashPassword, verifyPassword };
+module.exports = { encrypt, decrypt, removeKeyCustom, hashPassword, verifyPassword, formatDate };
+
+

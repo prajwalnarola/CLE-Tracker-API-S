@@ -30,6 +30,12 @@ module.exports = (sequelize, Sequelize) => {
           notEmpty: true,
         },
       },
+      biennial_reporting_date: {
+        type: Sequelize.DATE,
+        validate: {
+          notEmpty: true,
+        },
+      },
       is_experienced: {
         type: Sequelize.BOOLEAN,
         defaultValue: "0",

@@ -8,15 +8,14 @@ const db = require("../config/db.config"); // models path
 const { user, categories, documents, cleTracker, credits, details } = db;
 
 const userControl = require("./user.controller");
-const functions = require("../utils/helperFunctions");
+const helperFunctions = require("../utils/helperFunctions");
 const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
 const uploadFile = require("../utils/uploadFile");
 const constants = require("../utils/constants");
 const { forEach } = require("async");
 const totalRequiredDocument = 4;
-// const requiredCreditsForExperienced = 24;
-// const requiredCreditsForFresher = 32;
+
 
 exports.getCategories = async (req, res) => {
   try {
@@ -39,6 +38,7 @@ exports.getCategories = async (req, res) => {
 
     if (data?.length > 0) {
       const categoryData = await categories.findAll({
+        where: { is_delete: 0},
         attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
       });
 
@@ -311,7 +311,7 @@ exports.updateCle = async (req, res) => {
 
         const verifyDocumentData = await documents.findAll({
           where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
-        })
+        });
 
         if (verifyDocumentData.length > 0) {
 
@@ -515,7 +515,7 @@ exports.getCredits = async (req, res) => {
 
 }
 
-exports.extendExpiryDate = async (req, res) => {
+exports.getDetails = async (req, res) => {
 
   if (!req.decoded) {
     res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
@@ -579,21 +579,21 @@ exports.extendExpiryDate = async (req, res) => {
 
       console.log('Total Credits Earned:', totalCreditsEarned);
 
-      const admissionDate = requireDate;
-      const oneYearLater = new Date(admissionDate);
-      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-      // Format the dates as "yyyy-mm-dd"
-      const formattedOneYearLater = formatDate(oneYearLater);
-      console.log(`One Year Later: ${formattedOneYearLater}`);
+      // const admissionDate = requireDate;
+      // const oneYearLater = new Date(admissionDate);
+      // oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+      // // Format the dates as "yyyy-mm-dd"
+      // const formattedOneYearLater = formatDate(oneYearLater);
+      // console.log(`One Year Later: ${formattedOneYearLater}`);
 
-      function formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      }
+      // function formatDate(date) {
+      //   const year = date.getFullYear();
+      //   const month = String(date.getMonth() + 1).padStart(2, '0');
+      //   const day = String(date.getDate()).padStart(2, '0');
+      //   return `${year}-${month}-${day}`;
+      // }
 
-      var today = formatDate(new Date());
+      var today = helperFunctions.formatDate(new Date());
       console.log(today);
 
       if (totalCreditsEarned != requireCredits) {
@@ -601,7 +601,7 @@ exports.extendExpiryDate = async (req, res) => {
 
         if (today >= requireDate) {
           console.log("//// Inside date condition ////");
-          await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
+          // await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
         }
       }
 
@@ -614,12 +614,143 @@ exports.extendExpiryDate = async (req, res) => {
         totalCreditsEarned: totalCreditsEarned,
         requireDate: details[0].required_date,
       }
-      
+
       res.status(responseCode.OK).send(responseObj.successObject(null, resultData));
     }
   }
 
 }
+
+
+
+
+
+
+
+
+
+exports.getTotalCLE = async (req, res) => {
+
+  if (!req.decoded) {
+    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+    return;
+  }
+
+  var errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+    return;
+  }
+
+  const decoded = req?.decoded;
+
+  const userData = await user.findAll({
+    where: { id: decoded?.id, is_delete: 0 },
+  })
+
+
+  if (userData.length > 0) {
+
+    const userDetails = await db.details.findAll({
+      where: { id: decoded?.id, is_delete: 0 },
+    })
+
+
+    if (userDetails.length > 0) {
+
+      const cleData = await cleTracker.findAll({
+        where: { user_id: decoded?.id, is_delete: 0 },
+        attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
+      });
+
+      if(cleData){
+
+        const cleTotalCount = await cleTracker.count({
+          where: { user_id: decoded?.id, is_delete: 0 },
+        });
+        res.status(responseCode.OK).send(responseObj.successObject("Success", cleTotalCount));
+
+      }else {
+        res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
+      }
+      
+    }
+
+  }
+
+}
+
+exports.getTotalCLEForEachCategory = async (req, res) => {
+
+  if (!req.decoded) {
+    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+    return;
+  }
+
+  var errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+    return;
+  }
+
+  const decoded = req?.decoded;
+
+  const userData = await user.findAll({
+    where: { id: decoded?.id, is_delete: 0 },
+  })
+
+
+  if (userData.length > 0) {
+
+    const userDetails = await db.details.findAll({
+      where: { id: decoded?.id, is_delete: 0 },
+    })
+
+
+    if (userDetails.length > 0) {
+      try {
+        const categoryData = await categories.findAll({
+          where: { is_delete: 0 },
+          attributes: ['id', 'cle_name'], 
+        });
+
+        const categoryCounts = [];
+        let totalCLECount = 0; 
+        const defaultCLECount = 4;
+
+        for (const category of categoryData) {
+          const categoryId = category.id;
+
+          const cleCount = await cleTracker.count({
+            where: { category_id: categoryId, is_delete: 0 },
+          });
+
+          let updatedCleCount;
+          if (cleCount >= 4) {
+            updatedCleCount = defaultCLECount;
+          } else {
+            updatedCleCount = cleCount;
+          }
+
+          totalCLECount += updatedCleCount;
+
+          categoryCounts.push({
+            category_id: categoryId,
+            cle_count: updatedCleCount,
+          });
+        }
+        res.status(responseCode.OK).send(responseObj.successObject("Success", { categoryCounts, totalCLECount }));
+
+      } catch (err) {
+        res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+      }
+    }    
+
+  }
+
+}
+
+
 
 
 

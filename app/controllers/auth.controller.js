@@ -73,6 +73,7 @@ exports.register = async (req, res) => {
             attorny_registration_number: req.body.attorny_registration_number,
             new_york_state_admission_date: req.body.new_york_state_admission_date,
             department_of_admission: req.body.department_of_admission,
+            biennial_reporting_date: req.body.biennial_reporting_date,
             is_experienced: req.body.is_experienced
           };
 
@@ -80,33 +81,26 @@ exports.register = async (req, res) => {
           if (!detailsData.isEmpty) {
             console.log(detailsData);
 
-            const admissionDate = detailsData.new_york_state_admission_date;
-            const oneYearLater = new Date(admissionDate);
-            oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+            const requireDate = detailsData.biennial_reporting_date;
+            // const oneYearLater = new Date(admissionDate);
+            // oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
             // Format the dates as "yyyy-mm-dd"
-            const formattedOneYearLater = formatDate(oneYearLater);
-            console.log(`One Year Later: ${formattedOneYearLater}`);
-
-            function formatDate(date) {
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
-              return `${year}-${month}-${day}`;
-            }
+            // const formattedRequireDate = functions.formatDate(requireDate);
+            // console.log(`Required by date: ${formattedRequireDate}`);
 
             const is_experienced = detailsData.is_experienced;
 
             if (is_experienced == 0) {
               const requireData = {
                 required_credits: requiredCreditsForFresher,
-                required_date: formattedOneYearLater,
+                required_date: requireDate,
               };
 
               await details.update(requireData, { where: { id: detailsData.id, is_delete: 0 } });
             } else if (is_experienced == 1) {
               const requireData1 = {
                 required_credits: requiredCreditsForExperienced,
-                required_date: formattedOneYearLater,
+                required_date: requireDate,
               };
               await details.update(requireData1, { where: { id: detailsData.id, is_delete: 0 } });
             }
@@ -258,6 +252,7 @@ exports.login = async (req, res) => {
         attorny_registration_number: user_details[0].attorny_registration_number,
         new_york_state_admission_date: user_details[0].new_york_state_admission_date,
         department_of_admission: user_details[0].department_of_admission,
+        biennial_reporting_date: user_details[0].biennial_reporting_date,
         is_experienced: user_details[0].is_experienced,
         required_credits: user_details[0].required_credits,
         required_date: user_details[0].required_date
