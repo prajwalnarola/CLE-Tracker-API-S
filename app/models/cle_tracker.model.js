@@ -26,6 +26,11 @@ module.exports = (sequelize, Sequelize) => {
           notEmpty: true,
         },
       },
+      is_submited: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: "0",
+        comment: "0 = false, 1 = true",
+      },
       is_delete: {
         type: Sequelize.BOOLEAN,
         defaultValue: "0",

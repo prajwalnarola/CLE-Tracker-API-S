@@ -384,7 +384,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (req.body?.biennial_reporting_date) {
-      updated_user_details['biennial_reporting_date'] = req.body?.biennial_reporting_date
+      updated_user_details['biennial_reporting_date'] = req.body?.biennial_reporting_date      
     }
 
     if (updated_user) {
@@ -403,12 +403,8 @@ exports.updateProfile = async (req, res) => {
 
             const getDetails = await details.findAll( {where: { user_id: decoded?.id, is_delete: 0 }});
             const requireDate = getDetails[0].biennial_reporting_date;
-            
-            const requireData = {
-              required_date: requireDate,
-            };
 
-            await details.update(requireData, { where: { user_id: decoded?.id, is_delete: 0 } });
+            await details.update( {required_date: requireDate}, { where: { user_id: decoded?.id, is_delete: 0 } });
 
             await user.findAll({
               where: { id: decoded?.id, is_delete: 0 },
@@ -432,6 +428,7 @@ exports.updateProfile = async (req, res) => {
                 new_york_state_admission_date: userDetailsResponseData[0].new_york_state_admission_date,
                 department_of_admission: userDetailsResponseData[0].department_of_admission,
                 biennial_reporting_date: userDetailsResponseData[0].biennial_reporting_date,
+                required_date: userDetailsResponseData[0].required_date,
                 is_experienced: userDetailsResponseData[0].is_experienced,
               }
               res.status(responseCode.OK).send(responseObj.successObject("profile updated successfuly!", responseData));

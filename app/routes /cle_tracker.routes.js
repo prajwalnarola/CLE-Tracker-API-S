@@ -15,7 +15,7 @@ Router.post('/deleteDocument', [], controller.deleteDocuments);
 Router.post('/deleteCle', [], controller.deleteCLE);
 Router.get('/getCredits', [], controller.getCredits);
 Router.get('/details', [], controller.getDetails);
-Router.get('/total', [], controller.getTotalCLE);
-Router.get('/total-by-category', [], controller.getTotalCLEForEachCategory);
+Router.get('/total-credits-by-category', [], controller.getTotalCreditsForEachCategory);
+Router.get('/submit', [], controller.submitCle);
 
 module.exports = Router;

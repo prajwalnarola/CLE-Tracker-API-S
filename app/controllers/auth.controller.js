@@ -15,6 +15,7 @@ const constants = require("../utils/constants");
 const requiredCreditsForExperienced = 24;
 const requiredCreditsForFresher = 32;
 
+
 exports.refreshToken = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
