@@ -5,7 +5,7 @@ const { validationResult } = require("express-validator");
 const { Sequelize, Op } = require("sequelize");
 
 const db = require("../config/db.config"); // models path
-const { user, deviceToken, details } = db;
+const { user, deviceToken, details, categories, documents, cleTracker, credits } = db;
 
 const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
@@ -384,7 +384,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (req.body?.biennial_reporting_date) {
-      updated_user_details['biennial_reporting_date'] = req.body?.biennial_reporting_date      
+      updated_user_details['biennial_reporting_date'] = req.body?.biennial_reporting_date
     }
 
     if (updated_user) {
@@ -401,10 +401,10 @@ exports.updateProfile = async (req, res) => {
 
           if (detailsData) {
 
-            const getDetails = await details.findAll( {where: { user_id: decoded?.id, is_delete: 0 }});
+            const getDetails = await details.findAll({ where: { user_id: decoded?.id, is_delete: 0 } });
             const requireDate = getDetails[0].biennial_reporting_date;
 
-            await details.update( {required_date: requireDate}, { where: { user_id: decoded?.id, is_delete: 0 } });
+            await details.update({ required_date: requireDate }, { where: { user_id: decoded?.id, is_delete: 0 } });
 
             await user.findAll({
               where: { id: decoded?.id, is_delete: 0 },
@@ -450,3 +450,91 @@ exports.updateProfile = async (req, res) => {
   }
 }
 
+exports.cleHistory = async (req, res) => {
+
+  if (!req.decoded) {
+    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+    return;
+  }
+
+  var errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+    return;
+  }
+
+  const decoded = req?.decoded;
+
+  const userData = await user.findAll({
+    where: { id: decoded?.id, is_delete: 0 },
+  });
+
+
+  if (userData.length > 0) {
+    const userDetails = await db.details.findAll({
+      where: { id: userData[0].id, is_delete: 0 },
+    })
+
+    if (userDetails.length > 0) {
+      try {
+        const categoryData = await categories.findAll({
+          where: { is_delete: 0 },
+          attributes: ['id', 'cle_name'],
+        });
+
+        const categoryDetails = [];
+        const year = req.query.year;
+
+        for (const category of categoryData) {
+          const categoryId = category.id;
+          const categoryName = category.cle_name;
+
+          const cleData = await cleTracker.findAll({
+            where: {
+              category_id: categoryId,
+              is_archived: 1,
+              is_delete: 0,
+              cle_date: {
+                [Sequelize.Op.and]: [
+                  Sequelize.where(Sequelize.fn('YEAR', Sequelize.col('cle_date')), year),
+                  Sequelize.where(Sequelize.fn('MONTH', Sequelize.col('cle_date')), '>=', 1),
+                  Sequelize.where(Sequelize.fn('MONTH', Sequelize.col('cle_date')), '<=', 12)
+                ]
+              }
+            },
+            attributes: ['id', 'cle_name', 'cle_date', 'is_archived'],
+            include: [
+              {
+                model: credits,
+                as: "credits",
+                where: { is_delete: 0 },
+                attributes: ['creditsEarned'],
+                required: false,
+              },
+              {
+                model: documents,
+                as: "documents",
+                where: { is_delete: 0 },
+                attributes: ['id', 'document'],
+                required: false,
+              }
+            ],
+          });
+
+          categoryDetails.push({
+            category_id: categoryId,
+            category_name: categoryName,
+            cle_data: cleData,
+          });
+
+        }
+
+        res.status(responseCode.OK).send(responseObj.successObject("Success", { categoryDetails }));
+
+      } catch (err) {
+        res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err));
+      }
+    }
+  }
+
+}

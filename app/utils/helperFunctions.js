@@ -47,7 +47,8 @@ function verifyPassword(password, hashPassword) {
 }
 
 // HERE IS FUNCTION FOR FORMAT DATE IN YYYY-MM-DD
-function formatDate(date) {
+function formatDate(requestDate) {
+  var date = new Date(requestDate); 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

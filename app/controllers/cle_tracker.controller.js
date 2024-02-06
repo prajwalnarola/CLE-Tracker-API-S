@@ -17,44 +17,44 @@ const { forEach } = require("async");
 const totalRequiredDocument = 4;
 
 
-exports.getCategories = async (req, res) => {
-  try {
-    if (!req.decoded) {
-      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
-      return;
-    }
+// exports.getCategories = async (req, res) => {
+//   try {
+//     if (!req.decoded) {
+//       res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+//       return;
+//     }
 
-    var errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
-      return;
-    }
+//     var errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+//       return;
+//     }
 
-    const decoded = req?.decoded;
+//     const decoded = req?.decoded;
 
-    const data = await user.findAll({
-      where: { id: decoded?.id, is_delete: 0 },
-    })
+//     const data = await user.findAll({
+//       where: { id: decoded?.id, is_delete: 0 },
+//     })
 
-    if (data?.length > 0) {
-      const categoryData = await categories.findAll({
-        where: { is_delete: 0 },
-        attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
-      });
+//     if (data?.length > 0) {
+//       const categoryData = await categories.findAll({
+//         where: { is_delete: 0 },
+//         attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete"] }
+//       });
 
-      const responseData = {
-        requiredCredits: data[0].required_credits,
-        required_date: data[0].required_date,
-        category_data: categoryData,
-      }
-      res.status(responseCode.OK).send(responseObj.successObject(null, responseData))
-    } else {
-      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
-    }
-  } catch (err) {
-    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
-  }
-}
+//       const responseData = {
+//         requiredCredits: data[0].required_credits,
+//         required_date: data[0].required_date,
+//         category_data: categoryData,
+//       }
+//       res.status(responseCode.OK).send(responseObj.successObject(null, responseData))
+//     } else {
+//       res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
+//     }
+//   } catch (err) {
+//     res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+//   }
+// }
 
 exports.postCle = async (req, res) => {
   try {
@@ -97,11 +97,12 @@ exports.postCle = async (req, res) => {
     // const is_experienced = data[0].is_experienced;
 
     if (data?.length > 0) {
+
       const cleData = {
         user_id: decoded?.id,
         category_id: req.body.categoryId,
         cle_name: req.body.cleName,
-        cle_date: req.body.cleDate,
+        cle_date: helperFunctions.formatDate(req.body.cleDate,)
       };
 
       await cleTracker.create(cleData)
@@ -484,7 +485,7 @@ exports.getCredits = async (req, res) => {
   if (userData.length > 0) {
 
     const cleData = await cleTracker.findAll({
-      where: { user_id: userData[0].id, is_delete: 0 },
+      where: { user_id: userData[0].id, is_archived: 0, is_delete: 0 },
     })
 
     const responseData = await Promise.all(cleData.map(async (data) => {
@@ -510,116 +511,116 @@ exports.getCredits = async (req, res) => {
 
     console.log('Total Credits Earned:', totalCreditsEarned);
 
-    res.status(responseCode.OK).send(responseObj.successObject(null, totalCreditsEarned));
+    res.status(responseCode.OK).send(responseObj.successObject("Success", {totalCreditsEarned}));
   }
 
 }
 
-exports.getDetails = async (req, res) => {
+// exports.getDetails = async (req, res) => {
 
-  if (!req.decoded) {
-    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
-    return;
-  }
+//   if (!req.decoded) {
+//     res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+//     return;
+//   }
 
-  var errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
-    return;
-  }
+//   var errors = validationResult(req);
+//   if (!errors.isEmpty()) {
+//     res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+//     return;
+//   }
 
-  const decoded = req?.decoded;
+//   const decoded = req?.decoded;
 
-  const userData = await user.findAll({
-    where: { id: decoded?.id, is_delete: 0 },
-  })
-
-
-  if (userData.length > 0) {
-
-    const userDetails = await db.details.findAll({
-      where: { id: decoded?.id, is_delete: 0 },
-    })
+//   const userData = await user.findAll({
+//     where: { id: decoded?.id, is_delete: 0 },
+//   })
 
 
-    if (userDetails.length > 0) {
+//   if (userData.length > 0) {
 
-      const requireCredits = userDetails[0].required_credits;
-      const requireDate = userDetails[0].required_date;
-      console.log("/////////");
-      console.log(requireDate);
-
-
-      const cleData = await cleTracker.findAll({
-        where: { user_id: decoded?.id, is_delete: 0 },
-      })
+//     const userDetails = await db.details.findAll({
+//       where: { id: decoded?.id, is_delete: 0 },
+//     })
 
 
+//     if (userDetails.length > 0) {
 
-      const responseData = await Promise.all(cleData.map(async (data) => {
-        const creditsData = await credits.findAll({
-          where: { cle_tracker_id: data.id, is_delete: 0 },
-          attributes: ["id", "creditsEarned"]
-        });
+//       const requireCredits = userDetails[0].required_credits;
+//       const requireDate = userDetails[0].required_date;
+//       console.log("/////////");
+//       console.log(requireDate);
 
-        return {
-          credits_data: creditsData,
-        };
-      }));
 
-      const totalCreditsEarned = responseData.reduce((sum, item) => {
-        if (item.credits_data && Array.isArray(item.credits_data)) {
-          const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
-          const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
-          return sum + sumOfCreditsEarned;
-        } else {
-          return sum;
-        }
-      }, 0);
+//       const cleData = await cleTracker.findAll({
+//         where: { user_id: decoded?.id, is_delete: 0 },
+//       })
 
-      console.log('Total Credits Earned:', totalCreditsEarned);
 
-      // const admissionDate = requireDate;
-      // const oneYearLater = new Date(admissionDate);
-      // oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-      // // Format the dates as "yyyy-mm-dd"
-      // const formattedOneYearLater = formatDate(oneYearLater);
-      // console.log(`One Year Later: ${formattedOneYearLater}`);
 
-      // function formatDate(date) {
-      //   const year = date.getFullYear();
-      //   const month = String(date.getMonth() + 1).padStart(2, '0');
-      //   const day = String(date.getDate()).padStart(2, '0');
-      //   return `${year}-${month}-${day}`;
-      // }
+//       const responseData = await Promise.all(cleData.map(async (data) => {
+//         const creditsData = await credits.findAll({
+//           where: { cle_tracker_id: data.id, is_delete: 0 },
+//           attributes: ["id", "creditsEarned"]
+//         });
 
-      var today = helperFunctions.formatDate(new Date());
-      console.log(today);
+//         return {
+//           credits_data: creditsData,
+//         };
+//       }));
 
-      if (totalCreditsEarned != requireCredits) {
-        console.log("//// Inside credits condition //// ");
+//       const totalCreditsEarned = responseData.reduce((sum, item) => {
+//         if (item.credits_data && Array.isArray(item.credits_data)) {
+//           const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
+//           const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
+//           return sum + sumOfCreditsEarned;
+//         } else {
+//           return sum;
+//         }
+//       }, 0);
 
-        if (today >= requireDate) {
-          console.log("//// Inside date condition ////");
-          // await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
-        }
-      }
+//       console.log('Total Credits Earned:', totalCreditsEarned);
 
-      const details = await db.details.findAll({
-        where: { user_id: userDetails[0].id, is_delete: 0 },
-        attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
-      })
+//       // const admissionDate = requireDate;
+//       // const oneYearLater = new Date(admissionDate);
+//       // oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+//       // // Format the dates as "yyyy-mm-dd"
+//       // const formattedOneYearLater = formatDate(oneYearLater);
+//       // console.log(`One Year Later: ${formattedOneYearLater}`);
 
-      const resultData = {
-        totalCreditsEarned: totalCreditsEarned,
-        requireDate: details[0].required_date,
-      }
+//       // function formatDate(date) {
+//       //   const year = date.getFullYear();
+//       //   const month = String(date.getMonth() + 1).padStart(2, '0');
+//       //   const day = String(date.getDate()).padStart(2, '0');
+//       //   return `${year}-${month}-${day}`;
+//       // }
 
-      res.status(responseCode.OK).send(responseObj.successObject(null, resultData));
-    }
-  }
+//       var today = helperFunctions.formatDate(new Date());
+//       console.log(today);
 
-}
+//       if (totalCreditsEarned != requireCredits) {
+//         console.log("//// Inside credits condition //// ");
+
+//         if (today >= requireDate) {
+//           console.log("//// Inside date condition ////");
+//           // await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
+//         }
+//       }
+
+//       const details = await db.details.findAll({
+//         where: { user_id: userDetails[0].id, is_delete: 0 },
+//         attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
+//       })
+
+//       const resultData = {
+//         totalCreditsEarned: totalCreditsEarned,
+//         requireDate: details[0].required_date,
+//       }
+
+//       res.status(responseCode.OK).send(responseObj.successObject(null, resultData));
+//     }
+//   }
+
+// }
 
 
 
@@ -648,23 +649,23 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
     const userDetails = await db.details.findAll({
       where: { id: userData[0].id, is_delete: 0 },
     })
-  
+
     if (userDetails.length > 0) {
       try {
         const categoryData = await categories.findAll({
           where: { is_delete: 0 },
           attributes: ['id', 'cle_name'],
         });
-  
+
         const categoryCounts = [];
         let overallTotalCredits = 0;
 
         for (const category of categoryData) {
           const categoryId = category.id;
           const categoryName = category.cle_name;
-  
+
           const cleData = await cleTracker.findAll({
-            where: { category_id: categoryId, is_delete: 0 },
+            where: { category_id: categoryId, is_archived: 0, is_delete: 0 },
             attributes: ['id', 'cle_name'],
             include: [
               {
@@ -676,9 +677,9 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
               }
             ],
           });
-  
+
           let categoryTotalCredits = 0;
-  
+
           for (const cleEntry of cleData) {
             if (cleEntry.credits && cleEntry.credits.length > 0) {
               categoryTotalCredits += cleEntry.credits[0].creditsEarned;
@@ -692,8 +693,8 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
           } else {
             updatedCategoryTotalCredits = categoryTotalCredits;
           }
-  
-  
+
+
           categoryCounts.push({
             category_id: categoryId,
             category_name: categoryName,
@@ -703,21 +704,20 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
 
           overallTotalCredits += updatedCategoryTotalCredits;
         }
-  
+
         res.status(responseCode.OK).send(responseObj.successObject("Success", {
           categoryCounts,
           overallTotalCredits,
           requireDate: userDetails[0].required_date,
         }));
-  
+
       } catch (err) {
         res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
       }
     }
   }
-  
-}
 
+}
 
 exports.submitCle = async (req, res) => {
 
@@ -760,102 +760,90 @@ exports.submitCle = async (req, res) => {
           attributes: ['id', 'cle_name'],
         });
 
-        let totalCLECount = 0;
-        const defaultCLECount = 4;
+        let overallTotalCredits = 0;
 
         for (const category of categoryData) {
           const categoryId = category.id;
-          const cleCount = await cleTracker.count({
+          const categoryName = category.cle_name;
+
+          const cleData = await cleTracker.findAll({
             where: { category_id: categoryId, is_delete: 0 },
+            attributes: ['id', 'cle_name'],
+            include: [
+              {
+                model: credits,
+                as: "credits",
+                where: { is_delete: 0 },
+                attributes: ['creditsEarned'],
+                required: false,
+              }
+            ],
           });
 
-          let updatedCleCount;
-          if (cleCount >= 4) {
-            updatedCleCount = defaultCLECount;
-          } else {
-            updatedCleCount = cleCount;
+          let categoryTotalCredits = 0;
+
+          for (const cleEntry of cleData) {
+            if (cleEntry.credits && cleEntry.credits.length > 0) {
+              categoryTotalCredits += cleEntry.credits[0].creditsEarned;
+            }
           }
 
-          totalCLECount += updatedCleCount;
-          console.log(totalCLECount);
+          let updatedCategoryTotalCredits;
+
+          if (categoryTotalCredits >= 4) {
+            updatedCategoryTotalCredits = 4;
+          } else {
+            updatedCategoryTotalCredits = categoryTotalCredits;
+          }
+
+          overallTotalCredits += updatedCategoryTotalCredits;
         }
 
-          var today = helperFunctions.formatDate(new Date());
-          console.log(today);
+        console.log(overallTotalCredits);
 
-          // if (totalCLECount != requireCredits) {
-          //   console.log("//// Inside credits condition //// ");
+        var today = helperFunctions.formatDate(new Date());
+        console.log(today);
 
-          //   if (today >= requireDate) {
-          //     console.log("//// Inside date condition ////");
-          //     // await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
-          //   }
-          // }
+        if (overallTotalCredits == requireCredits) {
+          console.log("//// Inside credits condition //// ");
 
-          if (totalCLECount == requireCredits) {
-            console.log("//// Inside credits condition //// ");
+          if (today <= requireDate) {
+            console.log("//// Inside date condition ////");
 
-            if (today <= requireDate) {
-              console.log("//// Inside date condition ////");
+              const requestData = {
+                biennial_reporting_date: req.body.required_date,
+                required_date: req.body.required_date,
+              }
 
-              const data = await db.details.update({ required_date: req.body.required_date }, { where: { id: userDetails[0].id, is_delete: 0 } });
+              const data = await db.details.update(requestData, { where: { id: userDetails[0].id, is_delete: 0 } });
 
               if (data) {
-
-                const cleData = await cleTracker.update({ is_submited: 1 }, { where: { user_id: userDetails[0].id, is_submited: 0, is_delete: 0 } });
-
-                if(cleData){
-
+  
+                const cleData = await cleTracker.update({ is_archived: 1 }, { where: { user_id: userDetails[0].id, is_archived: 0, is_delete: 0 } });
+  
+                if (cleData) {
+  
                   const details = await db.details.findAll({
                     where: { user_id: userDetails[0].id, is_delete: 0 },
                     attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
                   });
   
-                  res.status(responseCode.OK).send(responseObj.successObject("Success", details[0].required_date));
-
-                } else {
-                  res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
-                }
-
-              } else {
-
-                const oneYearLater = new Date(requireDate);
-                oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-                // Format the dates as "yyyy-mm-dd"
-                const formattedOneYearLater = helperFunctions.formatDate(oneYearLater);
-                console.log(`One Year Later: ${formattedOneYearLater}`);
-
-                const data = await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
-
-                if (data) {
-
-                  const cleData = await cleTracker.update({ is_submited: 1 }, { where: { user_id: userDetails[0].id, is_submited: 0, is_delete: 0 } });
-
-                  if(cleData){
-
-                    const details = await db.details.findAll({
-                      where: { user_id: userDetails[0].id, is_delete: 0 },
-                      attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
-                    })
-    
-                    res.status(responseCode.OK).send(responseObj.successObject("Success", details[0].required_date));
-
-                  } else {
-                    res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
-                  }
+                  res.status(responseCode.OK).send(responseObj.successObject("Success / Archived & manually updated required date ", details[0].required_date));
   
                 } else {
                   res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
                 }
-
+  
+              } else {
+                res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
               }
 
-            } else {
-              res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong deadline!"));
-            }
+          } else {
+            res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+          }
 
         } else {
-          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong on total cle count!"));
+          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
         }
       } catch (err) {
         res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))

@@ -26,7 +26,7 @@ module.exports = (sequelize, Sequelize) => {
           notEmpty: true,
         },
       },
-      is_submited: {
+      is_archived: {
         type: Sequelize.BOOLEAN,
         defaultValue: "0",
         comment: "0 = false, 1 = true",

@@ -7,15 +7,15 @@ const validator = require("../utils/validator");
 
 
 // DEFINED DIFFRENT ROUTES AND AS MIDDLWARE WE PASSED VALIDATIONS
-Router.get('/categories', [], controller.getCategories);
+// Router.get('/categories', [], controller.getCategories);
 Router.post('/post', [], controller.postCle);
 Router.get('/getCle', [], controller.getCle);
 Router.post('/updateCle', [], controller.updateCle);
 Router.post('/deleteDocument', [], controller.deleteDocuments);
 Router.post('/deleteCle', [], controller.deleteCLE);
 Router.get('/getCredits', [], controller.getCredits);
-Router.get('/details', [], controller.getDetails);
+// Router.get('/details', [], controller.getDetails);
 Router.get('/total-credits-by-category', [], controller.getTotalCreditsForEachCategory);
-Router.get('/submit', [], controller.submitCle);
+Router.post('/submit', [], controller.submitCle);
 
 module.exports = Router;
