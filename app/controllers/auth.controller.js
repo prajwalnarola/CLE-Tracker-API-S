@@ -59,9 +59,9 @@ exports.register = async (req, res) => {
         middle_name: req.body.middle_name,
         last_name: req.body.last_name,
         email: req.body.email,
-        date_of_birth: req.body.date_of_birth,
+        date_of_birth: functions.formatDate(req.body.date_of_birth),
         password: req.body.password,
-        is_experienced: req.body.is_experienced
+        is_admin: req.body.is_admin,
       };
 
       const data = await user.create(create_user);
@@ -72,10 +72,10 @@ exports.register = async (req, res) => {
           const detail = {
             user_id: data.id,
             attorny_registration_number: req.body.attorny_registration_number,
-            new_york_state_admission_date: req.body.new_york_state_admission_date,
+            new_york_state_admission_date: functions.formatDate(req.body.new_york_state_admission_date),
             department_of_admission: req.body.department_of_admission,
-            biennial_reporting_date: req.body.biennial_reporting_date,
-            is_experienced: req.body.is_experienced
+            biennial_reporting_date: functions.formatDate(req.body.biennial_reporting_date),
+            is_experienced: req.body.is_experienced,
           };
 
           const detailsData = await details.create(detail);

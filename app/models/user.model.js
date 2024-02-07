@@ -55,8 +55,10 @@ module.exports = (sequelize, Sequelize) => {
           notEmpty: true,
         },
       },
-      device_token: {
-        type: Sequelize.STRING,
+      is_admin: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: "0",
+        comment: "0 = false, 1 = true",
       },
       is_verified: {
         type: Sequelize.BOOLEAN,

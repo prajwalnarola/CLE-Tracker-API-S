@@ -2,14 +2,11 @@ module.exports = (sequelize, Sequelize) => {
   const Categories = sequelize.define(
     "categories",
     {
-      cle_name: {
-        type: Sequelize.ENUM,
-        values: [
-          "Management General",
-          "Skills",
-          "Ethics/Professionalism",
-          "Law Practice",
-        ],
+      category: {
+        type: Sequelize.STRING,
+        validate: {
+          notEmpty: true,
+        },
       },
       is_delete: {
         type: Sequelize.BOOLEAN,

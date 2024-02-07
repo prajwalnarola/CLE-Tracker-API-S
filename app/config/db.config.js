@@ -21,6 +21,9 @@ db.categories = require("../models/categories.model")(sequelize, Sequelize);
 db.documents = require("../models/documents.model")(sequelize, Sequelize);
 db.credits = require("../models/credits.model")(sequelize, Sequelize);
 db.details = require("../models/details.model")(sequelize, Sequelize);
+db.admin_setting = require("../models/admin_setting.model")(sequelize, Sequelize);
+db.resources = require("../models/resources.model")(sequelize, Sequelize);
+db.faq = require("../models/faq.model")(sequelize, Sequelize);
 
 // has RELATIONS (HasMany / HasOne)
 db.user.hasOne(db.deviceToken, { as: "devicetoken", foreignKey: "user_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
@@ -29,6 +32,8 @@ db.categories.hasOne(db.cleTracker, { as: "cleTracker", foreignKey: "category_id
 db.cleTracker.hasMany(db.documents, { as: "documents", foreignKey: "cle_tracker_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
 db.cleTracker.hasMany(db.credits, { as: "credits", foreignKey: "cle_tracker_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
 db.user.hasMany(db.details, { as: "details", foreignKey: "user_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
+db.admin_setting.hasMany(db.resources, { as: "resources", foreignKey: "setting_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
+db.admin_setting.hasMany(db.faq, { as: "faq", foreignKey: "setting_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
 
 // belongsTO RELATION (BelongsTo / BelongsToMany)(foreign-key)
 db.deviceToken.belongsTo(db.user, { as: "user", foreignKey: "user_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
@@ -37,5 +42,7 @@ db.cleTracker.belongsTo(db.categories, { as: "categories", foreignKey: "category
 db.documents.belongsTo(db.cleTracker, { as: "cleTracker", foreignKey: "cle_tracker_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
 db.credits.belongsTo(db.cleTracker, { as: "cleTracker", foreignKey: "cle_tracker_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
 db.details.belongsTo(db.user, { as: "user", foreignKey: "user_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
+db.resources.belongsTo(db.admin_setting, { as: "admin_setting", foreignKey: "setting_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
+db.faq.belongsTo(db.admin_setting, { as: "admin_setting", foreignKey: "setting_id", targetKey: "id", onDelete: "CASCADE", onUpdate: "NO ACTION" });
 
 module.exports = db

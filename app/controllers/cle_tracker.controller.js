@@ -196,14 +196,14 @@ exports.getCle = async (req, res) => {
     if (data?.length > 0) {
 
       const cleData = await cleTracker.findAll({
-        where: { user_id: decoded?.id, is_delete: 0 },
+        where: { user_id: decoded?.id, is_archived: 0, is_delete: 0 },
       })
 
       const responseData = await Promise.all(cleData.map(async (data) => {
 
         const categoryData = await categories.findAll({
           where: { id: data.category_id, is_delete: 0 },
-          attributes: ["id", "cle_name"]
+          attributes: ["id", "category"]
         });
 
         const creditsData = await credits.findAll({
@@ -654,7 +654,7 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
       try {
         const categoryData = await categories.findAll({
           where: { is_delete: 0 },
-          attributes: ['id', 'cle_name'],
+          attributes: ['id', 'category'],
         });
 
         const categoryCounts = [];
@@ -662,7 +662,7 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
 
         for (const category of categoryData) {
           const categoryId = category.id;
-          const categoryName = category.cle_name;
+          const categoryName = category.category;
 
           const cleData = await cleTracker.findAll({
             where: { category_id: categoryId, is_archived: 0, is_delete: 0 },
@@ -757,7 +757,7 @@ exports.submitCle = async (req, res) => {
 
         const categoryData = await categories.findAll({
           where: { is_delete: 0 },
-          attributes: ['id', 'cle_name'],
+          attributes: ['id', 'category'],
         });
 
         let overallTotalCredits = 0;
