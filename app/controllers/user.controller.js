@@ -5,7 +5,7 @@ const { validationResult } = require("express-validator");
 const { Sequelize, Op } = require("sequelize");
 
 const db = require("../config/db.config"); // models path
-const { user, deviceToken, details, categories, documents, cleTracker, credits, admin_setting, faq } = db;
+const { user, deviceToken, details, categories, documents, cleTracker, credits } = db;
 
 const responseCode = require("../utils/responseStatus");
 const responseObj = require("../utils/responseObjects");
@@ -343,7 +343,7 @@ exports.updateProfile = async (req, res) => {
     let updated_user = {};
     let updated_user_details = {};
     let img;
-    if (req.files['profile']) {
+    if (req.files && req.files['profile']) {
       img = (await uploadFile(req, res))[0]?.name
     }
 
@@ -491,6 +491,7 @@ exports.cleHistory = async (req, res) => {
 
           const cleData = await cleTracker.findAll({
             where: {
+              user_id: userData[0].id,
               category_id: categoryId,
               is_archived: 1,
               is_delete: 0,
@@ -539,67 +540,4 @@ exports.cleHistory = async (req, res) => {
 
 }
 
-exports.getSettingDetails = async (req, res) => {
-
-  if (!req.decoded) {
-    res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
-    return;
-  }
-
-  var errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
-    return;
-  }
-
-  const decoded = req?.decoded;
-
-  const userData = await user.findAll({
-    where: { id: decoded?.id, is_delete: 0 },
-  });
-
-
-  if (userData.length > 0) {
-    const userDetails = await db.details.findAll({
-      where: { id: userData[0].id, is_delete: 0 },
-    })
-
-    if (userDetails.length > 0) {
-      try {
-        const settingData = await admin_setting.findAll({
-          where: { is_delete: 0 },
-          attributes: {
-            exclude: ["created_at", "updated_at", "is_testdata", "is_delete"],
-          },
-        });
-
-        if (settingData.length > 0) {
-
-          console.log(settingData[0].id);
-
-          const faqData = await faq.findAll({
-            where: {setting_id: settingData[0].id, is_delete: 0 },
-            attributes: {
-              exclude: ["created_at", "updated_at", "is_testdata", "is_delete"],
-            },
-          });
-
-          const responseData = {
-            requirements: settingData[0].requirements,
-            privacy_policy: settingData[0].privacy_policy,
-            terms_and_conditions: settingData[0].terms_and_conditions,
-            faq: faqData
-          };
-          res.status(responseCode.OK).send(responseObj.successObject("Success", responseData));
-
-        } else {
-          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"))
-        }
-      } catch (err) {
-        res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err));
-      }
-    }
-  }
-
-}
 

@@ -48,14 +48,21 @@ function verifyPassword(password, hashPassword) {
 
 // HERE IS FUNCTION FOR FORMAT DATE IN YYYY-MM-DD
 function formatDate(requestDate) {
-  var date = new Date(requestDate); 
+  var date = new Date(requestDate);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
+function yearsDiff(d1, d2) {
+  let date1 = new Date(d1);
+  let date2 = new Date(d2);
+  let yearsDiff = date2.getFullYear() - date1.getFullYear();
+  return yearsDiff;
+}
+
 //EXPORTED ABOVE METHODS
-module.exports = { encrypt, decrypt, removeKeyCustom, hashPassword, verifyPassword, formatDate };
+module.exports = { encrypt, decrypt, removeKeyCustom, hashPassword, verifyPassword, formatDate, yearsDiff };
 
 

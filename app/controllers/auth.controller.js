@@ -61,7 +61,6 @@ exports.register = async (req, res) => {
         email: req.body.email,
         date_of_birth: functions.formatDate(req.body.date_of_birth),
         password: req.body.password,
-        is_admin: req.body.is_admin,
       };
 
       const data = await user.create(create_user);

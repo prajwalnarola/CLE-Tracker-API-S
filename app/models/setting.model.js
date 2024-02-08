@@ -1,26 +1,35 @@
 module.exports = (sequelize, Sequelize) => {
-  const Admin_setting = sequelize.define(
-    "admin_setting",
+  const Setting = sequelize.define(
+    "setting",
     {
-      requirements: {
+      type: {
+        type: Sequelize.ENUM,
+        values: [
+          "Requirements",
+          "Resources",
+          "Privacy policy",
+          "Terms & conditions",
+          "FAQs"
+        ],
+      },
+      key: {
         type: Sequelize.TEXT('long'),
         validate: {
           notEmpty: true,
         },
       },
-      privacy_policy: {
+      value: {
         type: Sequelize.TEXT('long'),
         validate: {
           notEmpty: true,
         },
       },
-      terms_and_conditions: {
+      tooltip: {
         type: Sequelize.TEXT('long'),
         validate: {
           notEmpty: true,
         },
       },
-      
       is_delete: {
         type: Sequelize.BOOLEAN,
         defaultValue: "0",
@@ -35,5 +44,5 @@ module.exports = (sequelize, Sequelize) => {
     { freezeTableName: true, timestamps: true, createdAt: "created_at", updatedAt: "updated_at" },
   );
 
-  return Admin_setting;
+  return Setting;
 };

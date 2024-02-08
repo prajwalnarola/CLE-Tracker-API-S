@@ -12,6 +12,5 @@ Router.post('/change-password', [validator.validateChangePassword], controller.c
 Router.post('/delete-account', [], controller.deleteAccount);
 Router.post('/logout', [], controller.logout);
 Router.get('/history', [], controller.cleHistory);
-Router.get('/get-setting-details', [], controller.getSettingDetails);
 
 module.exports = Router;

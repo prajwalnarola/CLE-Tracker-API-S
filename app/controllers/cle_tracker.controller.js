@@ -5,7 +5,7 @@ const bcrypt = require("bcrypt");
 const JWTFunctions = require("../Helpers/JWTFunctions");
 
 const db = require("../config/db.config"); // models path
-const { user, categories, documents, cleTracker, credits, details } = db;
+const { user, categories, documents, cleTracker, credits, details, setting } = db;
 
 const userControl = require("./user.controller");
 const helperFunctions = require("../utils/helperFunctions");
@@ -196,7 +196,7 @@ exports.getCle = async (req, res) => {
     if (data?.length > 0) {
 
       const cleData = await cleTracker.findAll({
-        where: { user_id: decoded?.id, is_archived: 0, is_delete: 0 },
+        where: { user_id: data[0].id, is_archived: 0, is_delete: 0 },
       })
 
       const responseData = await Promise.all(cleData.map(async (data) => {
@@ -242,120 +242,129 @@ exports.getCle = async (req, res) => {
   }
 }
 
-exports.updateCle = async (req, res) => {
-  try {
-    if (!req?.body) {
-      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Content is required"))
-      return;
-    }
+// exports.updateCle = async (req, res) => {
+//   try {
+//     if (!req?.body) {
+//       res.status(responseCode.BADREQUEST).send(responseObj.failObject("Content is required"))
+//       return;
+//     }
 
-    if (!req.decoded) {
-      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
-      return;
-    }
+//     if (!req.decoded) {
+//       res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+//       return;
+//     }
 
-    var errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
-      return;
-    }
+//     var errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+//       return;
+//     }
 
-    const decoded = req?.decoded;
+//     const decoded = req?.decoded;
 
-    const cle_tracker_id = req.body?.cleTrackerId
-    const credit_id = req.body?.creditId
-    const document_id = req.body?.documentId
+//     const cle_tracker_id = req.body?.cleTrackerId
+//     const credit_id = req.body?.creditId
+//     const document_id = req.body?.documentId
 
-    let updated_cle = {};
+//     let updated_cle = {};
 
-    if (req.body?.cleName) {
-      updated_cle['cle_name'] = req.body?.cleName
-    }
+//     if (req.body?.cleName) {
+//       updated_cle['cle_name'] = req.body?.cleName
+//     }
 
-    if (req.body?.cleDate) {
-      updated_cle['cle_date'] = req.body?.cleDate
-    }
+//     if (req.body?.cleDate) {
+//       updated_cle['cle_date'] = req.body?.cleDate
+//     }
 
-    if (req.body?.categoryId) {
-      updated_cle['category_id'] = req.body?.categoryId
-    }
+//     if (req.body?.categoryId) {
+//       updated_cle['category_id'] = req.body?.categoryId
+//     }
 
-    const creditsData = {
-      creditsEarned: req.body?.creditsEarned,
-    };
+//     const creditsData = {
+//       creditsEarned: req.body?.creditsEarned,
+//     };
 
-    // let update_document;
-    // if (req.files['documents']) {
-    //   update_document = (await uploadFile(req, res))[0]?.name
-    // }
+//     // let update_document;
+//     // if (req.files['documents']) {
+//     //   update_document = (await uploadFile(req, res))[0]?.name
+//     // }
 
-    // const update_document_data = {
-    //   document: update_document
-    // }
+//     // const update_document_data = {
+//     //   document: update_document
+//     // }
 
-    // console.log(update_document);
+//     // console.log(update_document);
 
-    if (updated_cle) {
-      const data = await cleTracker.update(updated_cle, { where: { id: cle_tracker_id, user_id: decoded?.id, is_delete: 0 } });
+//     if (updated_cle) {
+//       const data = await cleTracker.update(updated_cle, { where: { id: cle_tracker_id, user_id: decoded?.id, is_delete: 0 } });
 
-      if (data) {
+//       if (data) {
 
-        const verifyCreditData = await credits.findAll({
-          where: { id: credit_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
-        })
+//         if (req.body && credit_id) {
 
-        if (verifyCreditData.length > 0) {
-          await credits.update(creditsData, { where: { id: credit_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
-        } else {
-          res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong updating credits!"))
-        }
+//           const verifyCreditData = await credits.findAll({
+//             where: { id: credit_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
+//           })
 
-        const verifyDocumentData = await documents.findAll({
-          where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
-        });
+//           if (verifyCreditData.length > 0) {
+//             await credits.update(creditsData, { where: { id: credit_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
+//           } else {
+//             res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong updating credits!"))
+//           }
 
-        if (verifyDocumentData.length > 0) {
+//         }
 
-          await documents.update({ is_delete: 1 }, { where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
-          res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"))
 
-        } else {
+//         const verifyDocumentData = await documents.findAll({
+//           where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
+//         });
 
-          const currentDocCount = await documents.count({
-            where: { cle_tracker_id: cle_tracker_id, is_delete: 0 },
-          })
+//         if (verifyDocumentData.length > 0) {
 
-          let insert_documents = [];
+//           await documents.update({ is_delete: 1 }, { where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
+//           res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"))
 
-          if (req.files['documents']) {
-            const uploadedFiles = await uploadFile(req, res);
+//         } else {
 
-            for (const file of uploadedFiles) {
-              const document = {
-                cle_tracker_id: cle_tracker_id,
-                document: file.name
-              };
-              insert_documents.push(document);
-              console.log("Document: ", file.name);
-            }
-          }
+//           const currentDocCount = await documents.count({
+//             where: { cle_tracker_id: cle_tracker_id, is_delete: 0 },
+//           })
 
-          if (insert_documents.length <= totalRequiredDocument - currentDocCount) {
-            documents.bulkCreate(insert_documents);
-            res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"))
-          } else {
-            res.status(responseCode.BADREQUEST).send({ message: "you can upload only 4 documents!!" });
-          }
+//           let insert_documents = [];
 
-        }
-      }
-    } else {
-      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong! No data to update."))
-    }
-  } catch (err) {
-    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
-  }
-}
+//           if (req.files && req.files['documents']) {
+//             const uploadedFiles = await uploadFile(req, res);
+
+//             for (const file of uploadedFiles) {
+//               const document = {
+//                 cle_tracker_id: cle_tracker_id,
+//                 document: file.name
+//               };
+//               insert_documents.push(document);
+//               console.log("Document: ", file.name);
+//             }
+//           }
+
+//           documents.bulkCreate(insert_documents);
+//           res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"))
+
+
+//           // if (insert_documents.length <= totalRequiredDocument - currentDocCount) {
+//           //   documents.bulkCreate(insert_documents);
+//           //   res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"));
+//           // } else {
+//           //   res.status(responseCode.BADREQUEST).send({ message: "you can upload only 4 documents!!" });
+//           // }
+
+//         }
+//       }
+//     } else {
+//       res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong! No data to update."))
+//     }
+//   } catch (err) {
+//     res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+//   }
+// }
 
 exports.deleteDocuments = async (req, res) => {
   try {
@@ -511,119 +520,10 @@ exports.getCredits = async (req, res) => {
 
     console.log('Total Credits Earned:', totalCreditsEarned);
 
-    res.status(responseCode.OK).send(responseObj.successObject("Success", {totalCreditsEarned}));
+    res.status(responseCode.OK).send(responseObj.successObject("Success", { totalCreditsEarned }));
   }
 
 }
-
-// exports.getDetails = async (req, res) => {
-
-//   if (!req.decoded) {
-//     res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
-//     return;
-//   }
-
-//   var errors = validationResult(req);
-//   if (!errors.isEmpty()) {
-//     res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
-//     return;
-//   }
-
-//   const decoded = req?.decoded;
-
-//   const userData = await user.findAll({
-//     where: { id: decoded?.id, is_delete: 0 },
-//   })
-
-
-//   if (userData.length > 0) {
-
-//     const userDetails = await db.details.findAll({
-//       where: { id: decoded?.id, is_delete: 0 },
-//     })
-
-
-//     if (userDetails.length > 0) {
-
-//       const requireCredits = userDetails[0].required_credits;
-//       const requireDate = userDetails[0].required_date;
-//       console.log("/////////");
-//       console.log(requireDate);
-
-
-//       const cleData = await cleTracker.findAll({
-//         where: { user_id: decoded?.id, is_delete: 0 },
-//       })
-
-
-
-//       const responseData = await Promise.all(cleData.map(async (data) => {
-//         const creditsData = await credits.findAll({
-//           where: { cle_tracker_id: data.id, is_delete: 0 },
-//           attributes: ["id", "creditsEarned"]
-//         });
-
-//         return {
-//           credits_data: creditsData,
-//         };
-//       }));
-
-//       const totalCreditsEarned = responseData.reduce((sum, item) => {
-//         if (item.credits_data && Array.isArray(item.credits_data)) {
-//           const creditsEarnedArray = item.credits_data.map(credit => credit.creditsEarned);
-//           const sumOfCreditsEarned = creditsEarnedArray.reduce((creditsSum, credits) => creditsSum + credits, 0);
-//           return sum + sumOfCreditsEarned;
-//         } else {
-//           return sum;
-//         }
-//       }, 0);
-
-//       console.log('Total Credits Earned:', totalCreditsEarned);
-
-//       // const admissionDate = requireDate;
-//       // const oneYearLater = new Date(admissionDate);
-//       // oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-//       // // Format the dates as "yyyy-mm-dd"
-//       // const formattedOneYearLater = formatDate(oneYearLater);
-//       // console.log(`One Year Later: ${formattedOneYearLater}`);
-
-//       // function formatDate(date) {
-//       //   const year = date.getFullYear();
-//       //   const month = String(date.getMonth() + 1).padStart(2, '0');
-//       //   const day = String(date.getDate()).padStart(2, '0');
-//       //   return `${year}-${month}-${day}`;
-//       // }
-
-//       var today = helperFunctions.formatDate(new Date());
-//       console.log(today);
-
-//       if (totalCreditsEarned != requireCredits) {
-//         console.log("//// Inside credits condition //// ");
-
-//         if (today >= requireDate) {
-//           console.log("//// Inside date condition ////");
-//           // await db.details.update({ required_date: formattedOneYearLater }, { where: { id: userDetails[0].id, is_delete: 0 } });
-//         }
-//       }
-
-//       const details = await db.details.findAll({
-//         where: { user_id: userDetails[0].id, is_delete: 0 },
-//         attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
-//       })
-
-//       const resultData = {
-//         totalCreditsEarned: totalCreditsEarned,
-//         requireDate: details[0].required_date,
-//       }
-
-//       res.status(responseCode.OK).send(responseObj.successObject(null, resultData));
-//     }
-//   }
-
-// }
-
-
-
 
 exports.getTotalCreditsForEachCategory = async (req, res) => {
 
@@ -644,11 +544,17 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
     where: { id: decoded?.id, is_delete: 0 },
   });
 
+  console.log("////");
+  console.log(userData[0]);
+
 
   if (userData.length > 0) {
     const userDetails = await db.details.findAll({
-      where: { id: userData[0].id, is_delete: 0 },
+      where: { user_id: userData[0].id, is_delete: 0 },
     })
+
+    console.log("////");
+    console.log(userData[0]);
 
     if (userDetails.length > 0) {
       try {
@@ -665,7 +571,7 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
           const categoryName = category.category;
 
           const cleData = await cleTracker.findAll({
-            where: { category_id: categoryId, is_archived: 0, is_delete: 0 },
+            where: { user_id: userData[0].id, category_id: categoryId, is_archived: 0, is_delete: 0 },
             attributes: ['id', 'cle_name'],
             include: [
               {
@@ -719,6 +625,186 @@ exports.getTotalCreditsForEachCategory = async (req, res) => {
 
 }
 
+// exports.submitCle = async (req, res) => {
+
+//   if (!req.decoded) {
+//     res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+//     return;
+//   }
+
+//   var errors = validationResult(req);
+//   if (!errors.isEmpty()) {
+//     res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+//     return;
+//   }
+
+//   const decoded = req?.decoded;
+
+//   const userData = await user.findAll({
+//     where: { id: decoded?.id, is_delete: 0 },
+//   })
+
+
+//   if (userData.length > 0) {
+
+//     const userDetails = await db.details.findAll({
+//       where: { id: userData[0].id, is_delete: 0 },
+//     })
+
+
+//     if (userDetails.length > 0) {
+//       try {
+
+//         const requireCredits = userDetails[0].required_credits;
+//         const requireDate = userDetails[0].required_date;
+//         console.log("/////////");
+//         console.log(requireCredits);
+//         console.log(requireDate);
+
+//         const categoryData = await categories.findAll({
+//           where: { is_delete: 0 },
+//           attributes: ['id', 'category'],
+//         });
+
+//         let overallTotalCredits = 0;
+
+//         for (const category of categoryData) {
+//           const categoryId = category.id;
+//           const categoryName = category.cle_name;
+
+//           const cleData = await cleTracker.findAll({
+//             where: { category_id: categoryId, is_delete: 0 },
+//             attributes: ['id', 'cle_name'],
+//             include: [
+//               {
+//                 model: credits,
+//                 as: "credits",
+//                 where: { is_delete: 0 },
+//                 attributes: ['creditsEarned'],
+//                 required: false,
+//               }
+//             ],
+//           });
+
+//           let categoryTotalCredits = 0;
+
+//           for (const cleEntry of cleData) {
+//             if (cleEntry.credits && cleEntry.credits.length > 0) {
+//               categoryTotalCredits += cleEntry.credits[0].creditsEarned;
+//             }
+//           }
+
+//           let updatedCategoryTotalCredits;
+
+//           if (categoryTotalCredits >= 4) {
+//             updatedCategoryTotalCredits = 4;
+//           } else {
+//             updatedCategoryTotalCredits = categoryTotalCredits;
+//           }
+
+//           overallTotalCredits += updatedCategoryTotalCredits;
+//         }
+
+//         console.log(overallTotalCredits);
+
+//         var today = helperFunctions.formatDate(new Date());
+//         console.log(today);
+
+//         if (overallTotalCredits == requireCredits) {
+//           console.log("//// Inside credits condition //// ");
+
+//           if (today <= requireDate) {
+//             console.log("//// Inside date condition ////");
+
+//             const requestData = {
+//               biennial_reporting_date: req.body.required_date,
+//               required_date: req.body.required_date,
+//             }
+
+//             const data = await db.details.update(requestData, { where: { id: userDetails[0].id, is_delete: 0 } });
+
+//             if (data) {
+
+//               const cleData = await cleTracker.update({ is_archived: 1 }, { where: { user_id: userDetails[0].id, is_archived: 0, is_delete: 0 } });
+
+//               if (cleData) {
+
+//                 const details = await db.details.findAll({
+//                   where: { user_id: userDetails[0].id, is_delete: 0 },
+//                   attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
+//                 });
+
+//                 res.status(responseCode.OK).send(responseObj.successObject("Success / Archived & manually updated required date ", details[0].required_date));
+
+//               } else {
+//                 res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+//               }
+
+//             } else {
+//               res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+//             }
+
+//           } else {
+//             res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+//           }
+
+//         } else {
+//           res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+//         }
+//       } catch (err) {
+//         res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+//       }
+//     }
+//   }
+// }
+
+exports.getSetting = async (req, res) => {
+  try {
+    if (!req.decoded) {
+      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+      return;
+    }
+
+    var errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+      return;
+    }
+
+    const decoded = req?.decoded;
+
+    const data = await user.findAll({
+      where: { id: decoded?.id, is_delete: 0 },
+    })
+
+    if (data?.length > 0) {
+
+      const userDetails = await db.details.findAll({
+        where: { user_id: data[0].id, is_delete: 0 },
+      })
+
+
+      if (userDetails.length > 0) {
+        try {
+
+          const settingData = await setting.findAll({
+            where: { is_delete: 0 },
+            attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
+          });
+
+          res.status(responseCode.OK).send(responseObj.successObject(null, settingData));
+
+        } catch (err) {
+          res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+        }
+      }
+    }
+  } catch (err) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+  }
+}
+
+
 exports.submitCle = async (req, res) => {
 
   if (!req.decoded) {
@@ -742,7 +828,7 @@ exports.submitCle = async (req, res) => {
   if (userData.length > 0) {
 
     const userDetails = await db.details.findAll({
-      where: { id: userData[0].id, is_delete: 0 },
+      where: { user_id: userData[0].id, is_delete: 0 },
     })
 
 
@@ -810,33 +896,43 @@ exports.submitCle = async (req, res) => {
           if (today <= requireDate) {
             console.log("//// Inside date condition ////");
 
-              const requestData = {
-                biennial_reporting_date: req.body.required_date,
-                required_date: req.body.required_date,
-              }
+            const requestData = {
+              biennial_reporting_date: req.body.required_date,
+              required_date: req.body.required_date,
+            }
 
-              const data = await db.details.update(requestData, { where: { id: userDetails[0].id, is_delete: 0 } });
+            const data = await db.details.update(requestData, { where: { id: userDetails[0].id, is_delete: 0 } });
 
-              if (data) {
-  
-                const cleData = await cleTracker.update({ is_archived: 1 }, { where: { user_id: userDetails[0].id, is_archived: 0, is_delete: 0 } });
-  
-                if (cleData) {
-  
-                  const details = await db.details.findAll({
-                    where: { user_id: userDetails[0].id, is_delete: 0 },
-                    attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
-                  });
-  
-                  res.status(responseCode.OK).send(responseObj.successObject("Success / Archived & manually updated required date ", details[0].required_date));
-  
-                } else {
-                  res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+            if (data) {
+
+              const cleData = await cleTracker.update({ is_archived: 1 }, { where: { user_id: userData[0].id, is_archived: 0, is_delete: 0 } });
+
+              if (cleData) {
+
+                const details = await db.details.findAll({
+                  where: { user_id: userDetails[0].id, is_delete: 0 },
+                  attributes: { exclude: ["created_at", "updated_at", "is_testdata", "is_delete", "uuid", "device_token", "is_verified", "password", "is_experienced"] }
+                });
+
+                const admissionDate = details[0].new_york_state_admission_date
+                const biennialReportingDate = details[0].biennial_reporting_date
+                const requiredDate = details[0].required_date
+
+                const yearsDifference = helperFunctions.yearsDiff(admissionDate, requiredDate);
+
+                if (yearsDifference >= 2) {
+                  await db.details.update({ is_experienced: 1 }, { where: { id: userDetails[0].id, is_experienced: 0, is_delete: 0 } });
                 }
-  
+
+                res.status(responseCode.OK).send(responseObj.successObject("Success / Archived & manually updated required date ", details[0].required_date));
+
               } else {
                 res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
               }
+
+            } else {
+              res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
+            }
 
           } else {
             res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
@@ -846,8 +942,130 @@ exports.submitCle = async (req, res) => {
           res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong!"));
         }
       } catch (err) {
-        res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err))
+        res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err));
       }
     }
   }
 }
+
+
+
+
+
+
+
+exports.updateCle = async (req, res) => {
+  try {
+    if (!req?.body) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Content is required"))
+      return;
+    }
+
+    if (!req.decoded) {
+      res.status(responseCode.UNAUTHORIZEDREQUEST).send(responseObj.failObject("You are unauthorized to access this api! Please check the authorization token."));
+      return;
+    }
+
+    var errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject(errors?.errors[0]?.msg));
+      return;
+    }
+
+    const decoded = req?.decoded;
+
+    const cle_tracker_id = req.body?.cleTrackerId
+    const credit_id = req.body?.creditId
+    const document_id = req.body?.documentId
+
+    let updated_cle = {};
+
+    if (req.body?.cleName) {
+      updated_cle['cle_name'] = req.body?.cleName
+    }
+
+    if (req.body?.cleDate) {
+      updated_cle['cle_date'] = req.body?.cleDate
+    }
+
+    if (req.body?.categoryId) {
+      updated_cle['category_id'] = req.body?.categoryId
+    }
+
+    const creditsData = {
+      creditsEarned: req.body?.creditsEarned,
+    };
+
+    // let update_document;
+    // if (req.files['documents']) {
+    //   update_document = (await uploadFile(req, res))[0]?.name
+    // }
+
+    // const update_document_data = {
+    //   document: update_document
+    // }
+
+    // console.log(update_document);
+
+    if (updated_cle) {
+      const data = await cleTracker.update(updated_cle, { where: { id: cle_tracker_id, user_id: decoded?.id, is_delete: 0 } });
+
+      if (data) {
+
+        if (req.body && credit_id) {
+
+          const verifyCreditData = await credits.findAll({
+            where: { id: credit_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
+          })
+
+          if (verifyCreditData.length > 0) {
+            await credits.update(creditsData, { where: { id: credit_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
+          } else {
+            res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong updating credits!"))
+          }
+
+        }
+
+        if (req.body && document_id) {
+
+          const verifyDocumentData = await documents.findAll({
+            where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 },
+          });
+
+          if (verifyDocumentData.length > 0) {
+
+            await documents.update({ is_delete: 1 }, { where: { id: document_id, cle_tracker_id: cle_tracker_id, is_delete: 0 } });
+            res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"))
+
+          } 
+        }else {
+
+            let insert_documents = [];
+
+            if (req.files && req.files['documents']) {
+              const uploadedFiles = await uploadFile(req, res);
+
+              for (const file of uploadedFiles) {
+                const document = {
+                  cle_tracker_id: cle_tracker_id,
+                  document: file.name
+                };
+                insert_documents.push(document);
+                console.log("Document: ", file.name);
+              }
+            }
+
+            documents.bulkCreate(insert_documents);
+            res.status(responseCode.OK).send(responseObj.successObject("CLE updated successfuly!"));
+          }
+        }
+    } else {
+      res.status(responseCode.BADREQUEST).send(responseObj.failObject("Something went wrong! No data to update."));
+    }
+  } catch (err) {
+    res.status(responseCode.BADREQUEST).send(responseObj.failObject(err?.message, err));
+  }
+}
+
+
+

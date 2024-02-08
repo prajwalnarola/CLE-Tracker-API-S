@@ -17,5 +17,6 @@ Router.get('/getCredits', [], controller.getCredits);
 // Router.get('/details', [], controller.getDetails);
 Router.get('/total-credits-by-category', [], controller.getTotalCreditsForEachCategory);
 Router.post('/submit', [], controller.submitCle);
+Router.get('/get-setting',[],controller.getSetting);
 
 module.exports = Router;
